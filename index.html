@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NB1 Kártya</title>
+<meta name="description" content="NB I menetrend, meccsadatok és meccskártya-készítő.">
+<meta name="theme-color" content="#eef1f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0f14" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NB1 Kártya">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="css/app.css">
+<script>
+  // a téma és az áttetszőség még a rajzolás előtt beáll (nincs villanás)
+  (function () {
+    try {
+      var t = localStorage.getItem('nb1.theme');
+      if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+      if (localStorage.getItem('nb1.rt') === 'reduce') document.documentElement.dataset.rt = 'reduce';
+    } catch (e) { /* privát mód: alapértelmezés */ }
+  })();
+</script>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ===== Meccsek ===== -->
+  <section class="tab" id="tab-matches" data-tab="matches">
+    <div class="screen list-screen" id="listScreen">
+      <header class="list-head">
+        <div class="title-row">
+          <h1>Meccsek</h1>
+          <button class="round-btn glass" id="btnTheme" type="button" aria-label="Világos vagy sötét téma">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+          </button>
+        </div>
+        <div class="round-pill">
+          <button type="button" id="prev" aria-label="Előző forduló"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button type="button" class="round-label" id="roundLabel" aria-label="Forduló kiválasztása">
+            <span class="rl-main"><b id="roundNum">–</b> forduló</span>
+            <span class="rl-sub" id="rangeLine"></span>
+          </button>
+          <button type="button" id="next" aria-label="Következő forduló"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+      </header>
+      <main class="scroll list-scroll" id="listScroll">
+        <div id="listInner">
+          <div class="league-row">
+            <span class="flag" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="league-name">OTP Bank Liga</span>
+            <span class="league-sub" id="seasonLine">Magyarország</span>
+            <button class="chip" id="btnNow" type="button" hidden>Aktuális</button>
+          </div>
+          <div id="days"></div>
+          <p class="foot-note" id="dataNote"></p>
+        </div>
+      </main>
+      <div class="dim" id="listDim"></div>
+    </div>
+
+    <div class="screen detail-screen" id="detail" aria-hidden="true">
+      <div class="detail-nav">
+        <button class="round-btn glass back-btn" id="btnBack" type="button" aria-label="Vissza a fordulóhoz">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <div class="detail-title" id="detailTitle"></div>
+        <span></span>
+      </div>
+      <div class="scroll detail-scroll" id="detailScroll">
+        <div class="hero">
+          <div class="hero-team"><span class="badge big" id="hBadge"></span><span class="hero-name" id="hName"></span></div>
+          <div class="hero-mid"><span class="hero-score" id="mBig"></span><span class="hero-status" id="mSmall"></span></div>
+          <div class="hero-team"><span class="badge big" id="aBadge"></span><span class="hero-name" id="aName"></span></div>
+        </div>
+        <p class="hero-meta" id="meta"></p>
+        <div class="segmented" id="seg" role="tablist">
+          <span class="seg-thumb"></span>
+          <button type="button" role="tab" data-seg="sum" aria-selected="true">Összegzés</button>
+          <button type="button" role="tab" data-seg="stat" aria-selected="false">Statisztika</button>
+        </div>
+        <div id="segSum"></div>
+        <div id="segStat" hidden></div>
+        <p class="foot-note">A bal szélről jobbra húzva visszalépsz a fordulóhoz.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Kártya ===== -->
+  <section class="tab scroll page" id="tab-card" data-tab="card" hidden>
+    <h1 class="page-title">Kártya</h1>
+    <p class="page-sub" id="cardSub">Válassz egy lejátszott meccset.</p>
+    <div class="card-empty" id="cardEmpty">
+      <p id="cardEmptyText">A kártyához válassz egy lejátszott meccset a Meccsek fülön.</p>
+      <button class="btn-secondary" type="button" id="btnToMatches">Meccsek megnyitása</button>
+    </div>
+    <div id="cardWork" hidden>
+      <div class="preview-box">
+        <canvas id="preview" hidden></canvas>
+        <div class="pv-msg" id="pvMsg">Az előnézet készül…</div>
+      </div>
+      <p class="missing" id="missing"></p>
+      <button class="btn-primary" type="button" id="btnSave">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg>
+        <span id="saveLabel">Mentés a Fotókba</span>
+      </button>
+      <p class="hint" id="saveHint">A mentés az iOS megosztás-lapját nyitja meg, ott válaszd a „Kép mentése” lehetőséget.</p>
+
+      <div class="group-label">ADATOK A KÁRTYÁN · <span id="cSel">0</span> kiválasztva</div>
+      <div class="presets">
+        <button type="button" id="pBase">Alap</button>
+        <button type="button" id="pAll">Mind</button>
+        <button type="button" id="pNone">Egyik sem</button>
+      </div>
+      <ul class="group stat-pick" id="statList"></ul>
+      <p class="hint">Koppints egy adatra a kijelöléshez, a nyilakkal állítsd a sorrendet. Az áthúzott adat ennél a meccsnél nem érhető el.</p>
+    </div>
+  </section>
+
+  <!-- ===== Beállítások ===== -->
+  <section class="tab scroll page" id="tab-settings" data-tab="settings" hidden>
+    <h1 class="page-title">Beállítások</h1>
+
+    <div class="group-label">MEGJELENÉS</div>
+    <div class="group pad">
+      <span class="row-label">Téma</span>
+      <div class="seg3" id="themeSeg" role="radiogroup" aria-label="Téma">
+        <button type="button" role="radio" data-theme-pick="system">Rendszer</button>
+        <button type="button" role="radio" data-theme-pick="light">Világos</button>
+        <button type="button" role="radio" data-theme-pick="dark">Sötét</button>
+      </div>
+    </div>
+
+    <div class="group-label">ÁTTETSZŐSÉG</div>
+    <div class="group pad">
+      <div class="switch-row">
+        <span class="row-label">Csökkentett áttetszőség</span>
+        <button type="button" class="switch" id="rtSwitch" role="switch" aria-checked="false" aria-label="Csökkentett áttetszőség"><span></span></button>
+      </div>
+      <p class="hint tight">Az üveg felületek a telefon beállítását is követik: Beállítások › Kisegítő lehetőségek › Kijelző és szövegméret › Áttetszőség csökkentése. Ha ez nem hat, itt kapcsold be.</p>
+    </div>
+
+    <div class="group-label">CSAPATCÍMEREK</div>
+    <ul class="group crest-list" id="crestList"></ul>
+    <p class="hint">Saját címer-képet tölthetsz be csapatonként. A telefon megjegyzi, és a listában és a kártyán is ez jelenik meg.</p>
+
+    <div class="group-label">ADATOK</div>
+    <div class="group pad">
+      <p class="hint tight" id="dataInfo"></p>
+    </div>
+  </section>
+
+  <!-- ===== Liquid Glass alsó navigáció ===== -->
+  <nav class="tabbar glass" id="tabbar" aria-label="Fő navigáció">
+    <span class="lens" id="lens"></span>
+    <button type="button" data-go="matches" aria-label="Meccsek">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+      <span>Meccsek</span>
+    </button>
+    <button type="button" data-go="card" aria-label="Kártya">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 15h7M8.5 18h4M9 9.5l2 2 4-4"/></svg>
+      <span>Kártya</span>
+    </button>
+    <button type="button" data-go="settings" aria-label="Beállítások">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>
+      <span>Beállítások</span>
+    </button>
+  </nav>
+
+  <!-- forduló-választó -->
+  <div class="scrim" id="scrim" hidden></div>
+  <div class="popover glass" id="popover" role="dialog" aria-label="Forduló kiválasztása" hidden>
+    <h3>Forduló kiválasztása</h3>
+    <div class="pgrid" id="pgrid"></div>
+  </div>
+  <input type="file" id="crestFile" accept="image/*" hidden>
+</div>
+
+<script src="js/format.js"></script>
+<script src="js/catalog.js"></script>
+<script src="js/colors.js"></script>
+<script src="js/card.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
