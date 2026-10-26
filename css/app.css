@@ -29,6 +29,7 @@
   --accent: #2f5bff;
   --accent-fg: #ffffff;
   --warn: #b25b00;
+  --ok: #1d7a3a;
   --glass: rgba(255, 255, 255, 0.56);
   --glass-solid: #f7f8fa;
   --glass-edge: rgba(255, 255, 255, 0.9);
@@ -46,7 +47,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0d0f14; --surface: #181b22; --surface2: #232731; --fg: #f1f3f7; --fg2: #a3abba; --line: rgba(255, 255, 255, 0.09);
-    --accent: #7d9bff; --accent-fg: #0d0f14; --warn: #ffb347;
+    --accent: #7d9bff; --accent-fg: #0d0f14; --warn: #ffb347; --ok: #5ad17f;
     --glass: rgba(38, 42, 53, 0.48); --glass-solid: #1e2129; --glass-edge: rgba(255, 255, 255, 0.18); --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     --lens: rgba(255, 255, 255, 0.13); --press: rgba(255, 255, 255, 0.06); --shadow-pop: 0 2px 8px rgba(0, 0, 0, 0.4);
     color-scheme: dark;
@@ -54,7 +55,7 @@
 }
 :root[data-theme="dark"] {
   --bg: #0d0f14; --surface: #181b22; --surface2: #232731; --fg: #f1f3f7; --fg2: #a3abba; --line: rgba(255, 255, 255, 0.09);
-  --accent: #7d9bff; --accent-fg: #0d0f14; --warn: #ffb347;
+  --accent: #7d9bff; --accent-fg: #0d0f14; --warn: #ffb347; --ok: #5ad17f;
   --glass: rgba(38, 42, 53, 0.48); --glass-solid: #1e2129; --glass-edge: rgba(255, 255, 255, 0.18); --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   --lens: rgba(255, 255, 255, 0.13); --press: rgba(255, 255, 255, 0.06); --shadow-pop: 0 2px 8px rgba(0, 0, 0, 0.4);
   color-scheme: dark;
@@ -255,6 +256,11 @@ svg { display: block; }
 .crest-list .acts { display: flex; gap: 6px; }
 .credit { margin: 0; font-size: 13px; color: var(--fg2); line-height: 1.45; }
 .credit + .credit { margin-top: -8px; }
+.pkg-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pkg-status { margin: 0; font-size: 13.5px; line-height: 1.45; white-space: pre-line; color: var(--fg2); }
+.pkg-status.ok { color: var(--ok); font-weight: 600; }
+.pkg-status.err { color: var(--warn); font-weight: 600; }
+.link-btn { align-self: flex-start; font-size: 13.5px; font-weight: 600; color: var(--accent); padding: 4px 0; }
 
 /* ---------- alsó navigáció ---------- */
 .tabbar {

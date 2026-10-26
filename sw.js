@@ -1,6 +1,7 @@
-/* Offline működés: az app összes fájlja a telefonon tárolódik.
- * Ha bármelyik fájl változik (pl. új data.js), növeld a VERSION értékét, különben a telefon a régit mutatja. */
-const VERSION = 'nb1-kartya-0.7beta';
+/* Offline működés: az app fájljai a telefonon is tárolódnak.
+ * Ha van net, mindig a friss fájlokat tölti le (így a kezdőképernyős app is frissül),
+ * net nélkül a tárolt példányt mutatja. Új kiadásnál érdemes a VERSION-t is növelni. */
+const VERSION = 'nb1-kartya-0.8beta';
 const FILES = [
   './',
   './index.html',
@@ -21,7 +22,8 @@ const FILES = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache: 'reload' – a böngésző saját gyorsítótárát is megkerüli, hogy tényleg a friss fájl kerüljön be
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -32,16 +34,15 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// előbb a tárolt példány (gyors, offline is megy), a háttérben frissít
+// előbb a hálózat (friss), ha nincs net, a tárolt példány
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
-    caches.open(VERSION).then((cache) => cache.match(e.request, { ignoreSearch: true }).then((hit) => {
-      const net = fetch(e.request).then((res) => {
-        if (res && res.ok) cache.put(e.request, res.clone());
+    fetch(e.request, { cache: 'no-store' })
+      .then((res) => {
+        if (res && res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(e.request, copy)); }
         return res;
-      }).catch(() => hit);
-      return hit || net;
-    }))
+      })
+      .catch(() => caches.open(VERSION).then((c) => c.match(e.request, { ignoreSearch: true })).then((hit) => hit || caches.match('./index.html')))
   );
 });

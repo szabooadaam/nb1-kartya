@@ -131,13 +131,23 @@
       </div>
     </div>
 
+    <div class="group-label">ADATOK</div>
+    <div class="group pad">
+      <div class="pkg-row">
+        <span class="row-label">Adatcsomag</span>
+        <button class="btn-small" type="button" id="btnPkg">Tallózás…</button>
+      </div>
+      <p class="pkg-status" id="pkgStatus" role="status" aria-live="polite"></p>
+      <p class="hint tight" id="dataInfo"></p>
+      <button class="link-btn" type="button" id="btnPkgReset" hidden>Vissza a beépített adatokra</button>
+    </div>
+
     <div class="group-label">CSAPATCÍMEREK</div>
     <ul class="group crest-list" id="crestList"></ul>
     <p class="hint">Saját címer-képet tölthetsz be csapatonként. A telefon megjegyzi, és a listában és a kártyán is ez jelenik meg.</p>
 
-    <div class="group-label">ADATOK</div>
+    <div class="group-label">NÉVJEGY</div>
     <div class="group pad">
-      <p class="hint tight" id="dataInfo"></p>
       <p class="credit">Készítette: Szabó Ádám</p>
       <p class="credit" id="appVersion"></p>
     </div>
@@ -167,6 +177,7 @@
     <div class="pgrid" id="pgrid"></div>
   </div>
   <input type="file" id="crestFile" accept="image/*" hidden>
+  <input type="file" id="pkgFile" hidden>
 </div>
 
 <script src="js/format.js"></script>

@@ -9,7 +9,7 @@
   const CAT = window.NB1Catalog;
   const COL = window.NB1Colors;
   const CARD = window.NB1Card;
-  const D = window.NB1_DATA;
+  let D = window.NB1_DATA;   // a beépített adatok; egy betöltött adatcsomag felülírja (lásd lent)
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -21,6 +21,23 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) { delete mem[k]; } },
   };
 
+  // ---------- adatcsomag (titkosított, tömörített .nb1 fájl; a tools/adatcsomag.rb készíti) ----------
+  // Szerkezet: "NB1ADAT1" | 16 bájt IV | AES-256-CBC titkosított gzip-JSON | 32 bájt HMAC-SHA256.
+  // A kulcsok az adatcsomag-készítő scriptben is szerepelnek: csak együtt cserélhetők.
+  const PKG_KEY = '4/YRV2gLeuTRtx0KPjlF9SUF4AnFBy4KA5legs0tNbY=';
+  const PKG_MAC = 'GnengwWDfRKulQ2MXu2eAht0WQTJsi+NfpEOsfIej38=';
+  const PKG_MAGIC = 'NB1ADAT1';
+  const PKG_STORE = 'nb1.pkg';
+  function storedPackage() {
+    try {
+      const j = JSON.parse(store.get(PKG_STORE) || 'null');
+      if (j && j.data && Array.isArray(j.data.matches) && j.data.teams && j.data.stats) return j;
+    } catch (e) { /* sérült tár: beépített adatok */ }
+    return null;
+  }
+  const PKG = storedPackage();
+  if (PKG) D = PKG.data;
+
   // ---------- adatok ----------
   const TEAMS = {};
   Object.keys(D.teams).forEach((id) => { TEAMS[id] = Object.assign({ id: Number(id) }, D.teams[id]); });
@@ -28,7 +45,7 @@
   const ROUNDS = [...new Set(MATCHES.map((m) => m.round))].sort((a, b) => a - b);
   const nowSec = () => Math.floor(Date.now() / 1000);
   const LEAGUE = 'NB1';          // a liga neve mindenhol (jogi okokból nem a szponzori név)
-  const APP_VERSION = '0.7beta';
+  const APP_VERSION = '0.8beta';
 
   function currentRound() {
     const now = nowSec();
@@ -422,15 +439,62 @@
   // ---------- beállítások ----------
   function renderSettings() {
     applyTheme();
+    renderPkg();
     $('#crestList').innerHTML = Object.values(TEAMS).sort((a, b) => a.name.localeCompare(b.name, 'hu')).map((t) =>
       '<li>' + badge(t) + '<span class="name">' + esc(t.name) + '</span><span class="acts">' +
       (crestImgs.has(t.id) ? '<button class="btn-small" type="button" data-crest-del="' + t.id + '">Törlés</button>' : '') +
       '<button class="btn-small" type="button" data-crest="' + t.id + '">' + (crestImgs.has(t.id) ? 'Csere' : 'Kép') + '</button></span></li>').join('');
     const at = Math.floor(new Date(D.updated).getTime() / 1000);
-    $('#dataInfo').textContent = 'Beépített adatcsomag: ' + LEAGUE + ' 20' + D.season + ', ' + MATCHES.length + ' meccs menetrendje és ' + Object.keys(D.stats).length + ' lejátszott meccs statisztikája. Állapot: ' + F.dateLong(at) + '. Új adatokhoz a data.js fájlt kell frissíteni.';
+    $('#dataInfo').textContent = (PKG ? 'Használt adatok: ' : 'Beépített adatok: ') + LEAGUE + ' 20' + D.season + ', ' + MATCHES.length + ' meccs menetrendje és ' + Object.keys(D.stats).length + ' lejátszott meccs statisztikája. Állapot: ' + F.dateLong(at) + '.';
     $('#appVersion').textContent = 'Verzió: ' + APP_VERSION;
   }
   let crestTarget = null;
+  // ---------- adatcsomag betöltése ----------
+  const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  const stamp = (iso) => { const t = Math.floor(new Date(iso).getTime() / 1000); return isFinite(t) ? F.dateLong(t) + ', ' + F.hhmm(t) : '–'; };
+  async function openPackage(buf) {
+    const u8 = new Uint8Array(buf);
+    if (u8.length < 8 + 16 + 16 + 32 || String.fromCharCode(...u8.slice(0, 8)) !== PKG_MAGIC) throw new Error('Ez a fájl nem NB1 adatcsomag.');
+    if (!window.crypto || !crypto.subtle || typeof DecompressionStream === 'undefined') throw new Error('Ez a böngésző nem tudja megnyitni az adatcsomagot. Frissítsd az iOS-t.');
+    const body = u8.slice(0, u8.length - 32); const mac = u8.slice(u8.length - 32);
+    const mk = await crypto.subtle.importKey('raw', b64(PKG_MAC), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+    if (!(await crypto.subtle.verify('HMAC', mk, mac, body))) throw new Error('A fájl sérült, vagy nem ehhez az apphoz készült.');
+    const ek = await crypto.subtle.importKey('raw', b64(PKG_KEY), { name: 'AES-CBC' }, false, ['decrypt']);
+    const gz = await crypto.subtle.decrypt({ name: 'AES-CBC', iv: body.slice(8, 24) }, ek, body.slice(24));
+    const text = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    const j = JSON.parse(text);
+    const d = j && j.data;
+    if (!j || j.format !== 'nb1-adatcsomag' || !d || !Array.isArray(d.matches) || !d.matches.length || !d.teams || !d.stats || !d.goals || !d.updated) throw new Error('Az adatcsomag tartalma hiányos.');
+    return j;
+  }
+  function renderPkg() {
+    const st = $('#pkgStatus');
+    st.classList.toggle('ok', !!PKG);
+    st.textContent = PKG
+      ? PKG.name + ' betöltve: ' + stamp(PKG.loaded) + '\nAdatok állapota: ' + stamp(PKG.data.updated)
+      : 'Nincs betöltött adatcsomag, a beépített adatokat használja az app.';
+    $('#btnPkgReset').hidden = !PKG;
+  }
+  $('#btnPkg').onclick = () => { const f = $('#pkgFile'); f.value = ''; f.click(); };
+  $('#pkgFile').addEventListener('change', async () => {
+    const file = $('#pkgFile').files[0];
+    if (!file) return;
+    const st = $('#pkgStatus');
+    st.classList.remove('ok', 'err');
+    st.textContent = 'Betöltés…';
+    try {
+      const j = await openPackage(await file.arrayBuffer());
+      const rec = { name: j.name || file.name.replace(/\.[^.]+$/, ''), created: j.created, loaded: new Date().toISOString(), data: j.data };
+      try { localStorage.setItem(PKG_STORE, JSON.stringify(rec)); } catch (e) { throw new Error('Nincs elég hely a telefon tárhelyén az adatok mentéséhez.'); }
+      store.set('nb1.pkgJustLoaded', '1');
+      location.reload();
+    } catch (e) {
+      st.classList.add('err');
+      st.textContent = (e && e.message) || 'Az adatcsomag betöltése nem sikerült.';
+    }
+  });
+  $('#btnPkgReset').onclick = () => { store.del(PKG_STORE); store.set('nb1.pkgJustLoaded', '1'); location.reload(); };
+
   $('#crestFile').addEventListener('change', () => {
     const file = $('#crestFile').files[0];
     if (!file || !crestTarget) return;
@@ -656,12 +720,26 @@
   const played = Object.keys(D.stats).length;
   $('#dataNote').textContent = 'Húzd oldalra a listát a fordulók közti lépéshez. Beépített adatok: ' + MATCHES.length + ' meccs, ' + played + ' lejátszott meccs statisztikája.';
   applyTheme();
-  setTab('matches');
+  // adatcsomag betöltése után a Beállításokban marad, és ott látszik az eredmény
+  const justLoaded = store.get('nb1.pkgJustLoaded') === '1';
+  store.del('nb1.pkgJustLoaded');
+  setTab(justLoaded ? 'settings' : 'matches');
   renderList();
   loadCrests().then(() => { renderList(); });
   window.NB1App = { openMatch, goto, setTab, setTheme, get view() { return view; } };
 
-  if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    navigator.serviceWorker.register('sw.js').catch(() => { /* offline mód nélkül is működik */ });
+  // offline működés + frissítés: a kezdőképernyőről indított app minden előtérbe kerüléskor rákérdez az új változatra,
+  // és ha jött, egyszer újratölti magát
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadController && !reloaded) { reloaded = true; location.reload(); }
+    });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+      const check = () => { reg.update().catch(() => { /* nincs net */ }); };
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+      window.addEventListener('pageshow', check);
+    }).catch(() => { /* offline mód nélkül is működik */ });
   }
 })();
