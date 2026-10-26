@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NB1 Kártya</title>
-<meta name="description" content="NB I menetrend, meccsadatok és meccskártya-készítő.">
+<meta name="description" content="NB1 menetrend, meccsadatok és meccskártya-készítő.">
 <meta name="theme-color" content="#eef1f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0d0f14" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,12 +16,11 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="stylesheet" href="css/app.css">
 <script>
-  // a téma és az áttetszőség még a rajzolás előtt beáll (nincs villanás)
+  // a téma még a rajzolás előtt beáll (nincs villanás)
   (function () {
     try {
       var t = localStorage.getItem('nb1.theme');
       if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
-      if (localStorage.getItem('nb1.rt') === 'reduce') document.documentElement.dataset.rt = 'reduce';
     } catch (e) { /* privát mód: alapértelmezés */ }
   })();
 </script>
@@ -35,9 +34,6 @@
       <header class="list-head">
         <div class="title-row">
           <h1>Meccsek</h1>
-          <button class="round-btn glass" id="btnTheme" type="button" aria-label="Világos vagy sötét téma">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
-          </button>
         </div>
         <div class="round-pill">
           <button type="button" id="prev" aria-label="Előző forduló"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -52,7 +48,7 @@
         <div id="listInner">
           <div class="league-row">
             <span class="flag" aria-hidden="true"><i></i><i></i><i></i></span>
-            <span class="league-name">OTP Bank Liga</span>
+            <span class="league-name">NB1</span>
             <span class="league-sub" id="seasonLine">Magyarország</span>
             <button class="chip" id="btnNow" type="button" hidden>Aktuális</button>
           </div>
@@ -117,7 +113,7 @@
         <button type="button" id="pNone">Egyik sem</button>
       </div>
       <ul class="group stat-pick" id="statList"></ul>
-      <p class="hint">Koppints egy adatra a kijelöléshez, a nyilakkal állítsd a sorrendet. Az áthúzott adat ennél a meccsnél nem érhető el.</p>
+      <p class="hint">Koppints egy adatra a kijelöléshez. A sorrendhez nyomd hosszan a sort, és húzd a helyére. Az áthúzott adat ennél a meccsnél nem érhető el.</p>
     </div>
   </section>
 
@@ -135,15 +131,6 @@
       </div>
     </div>
 
-    <div class="group-label">ÁTTETSZŐSÉG</div>
-    <div class="group pad">
-      <div class="switch-row">
-        <span class="row-label">Csökkentett áttetszőség</span>
-        <button type="button" class="switch" id="rtSwitch" role="switch" aria-checked="false" aria-label="Csökkentett áttetszőség"><span></span></button>
-      </div>
-      <p class="hint tight">Az üveg felületek a telefon beállítását is követik: Beállítások › Kisegítő lehetőségek › Kijelző és szövegméret › Áttetszőség csökkentése. Ha ez nem hat, itt kapcsold be.</p>
-    </div>
-
     <div class="group-label">CSAPATCÍMEREK</div>
     <ul class="group crest-list" id="crestList"></ul>
     <p class="hint">Saját címer-képet tölthetsz be csapatonként. A telefon megjegyzi, és a listában és a kártyán is ez jelenik meg.</p>
@@ -151,6 +138,8 @@
     <div class="group-label">ADATOK</div>
     <div class="group pad">
       <p class="hint tight" id="dataInfo"></p>
+      <p class="credit">Készítette: Szabó Ádám</p>
+      <p class="credit" id="appVersion"></p>
     </div>
   </section>
 

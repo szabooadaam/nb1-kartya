@@ -1,6 +1,6 @@
 /* Offline működés: az app összes fájlja a telefonon tárolódik.
  * Ha bármelyik fájl változik (pl. új data.js), növeld a VERSION értékét, különben a telefon a régit mutatja. */
-const VERSION = 'nb1-kartya-v1';
+const VERSION = 'nb1-kartya-0.7beta';
 const FILES = [
   './',
   './index.html',

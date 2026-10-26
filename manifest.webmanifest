@@ -1,7 +1,7 @@
 {
   "name": "NB1 Kártya",
   "short_name": "NB1 Kártya",
-  "description": "NB I menetrend, meccsadatok és meccskártya-készítő.",
+  "description": "NB1 menetrend, meccsadatok és meccskártya-készítő.",
   "lang": "hu",
   "start_url": "./",
   "scope": "./",

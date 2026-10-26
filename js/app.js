@@ -27,6 +27,8 @@
   const MATCHES = D.matches.map((m) => Object.assign({}, m, { h: TEAMS[m.home], a: TEAMS[m.away] }));
   const ROUNDS = [...new Set(MATCHES.map((m) => m.round))].sort((a, b) => a - b);
   const nowSec = () => Math.floor(Date.now() / 1000);
+  const LEAGUE = 'NB1';          // a liga neve mindenhol (jogi okokból nem a szponzori név)
+  const APP_VERSION = '0.7beta';
 
   function currentRound() {
     const now = nowSec();
@@ -102,7 +104,6 @@
   // ---------- téma, áttetszőség ----------
   const root = document.documentElement;
   const themePref = () => store.get('nb1.theme') || 'system';
-  const isDark = () => { const p = themePref(); return p === 'dark' || (p === 'system' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); };
   function applyTheme() {
     const p = themePref();
     if (p === 'system') delete root.dataset.theme; else root.dataset.theme = p;
@@ -111,11 +112,6 @@
     document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', bg));
   }
   function setTheme(p) { if (p === 'system') store.del('nb1.theme'); else store.set('nb1.theme', p); applyTheme(); }
-  function applyRt() {
-    const on = store.get('nb1.rt') === 'reduce';
-    if (on) root.dataset.rt = 'reduce'; else delete root.dataset.rt;
-    $('#rtSwitch').setAttribute('aria-checked', String(on));
-  }
 
   // ---------- fülek ----------
   const TABS = ['matches', 'card', 'settings'];
@@ -233,7 +229,7 @@
     else if (st.kind === 'postponed' || st.kind === 'canceled') { big.textContent = '–'; $('#mSmall').textContent = st.label; }
     else { big.textContent = F.hhmm(m.ts); $('#mSmall').textContent = F.dayHead(m.ts); }
     const venue = [m.h.venue, m.h.city].filter(Boolean).join(', ');
-    $('#meta').textContent = D.tournament + ' · ' + m.round + '. forduló · ' + F.dateLong(m.ts) + (venue ? ' · ' + venue : '');
+    $('#meta').textContent = LEAGUE + ' · ' + m.round + '. forduló · ' + F.dateLong(m.ts) + (venue ? ' · ' + venue : '');
 
     // összegzés: gólok + kártya gomb
     const goals = D.goals[m.id];
@@ -327,7 +323,7 @@
     return {
       missing,
       payload: {
-        title: D.tournament + ' · ' + m.round + '. forduló',
+        title: LEAGUE + ' · ' + m.round + '. forduló',
         dateText: F.dateLong(m.ts) + ' · ' + F.hhmm(m.ts),
         venue: [m.h.venue, m.h.city].filter(Boolean).join(', '),
         home: { name: m.h.name, code: m.h.code, img: crestImgs.get(m.h.id) || null },
@@ -396,8 +392,7 @@
     setTimeout(() => { label.textContent = 'Mentés a Fotókba'; }, 1800);
   }
 
-  const UP = '<svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>';
-  const DOWN = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
+  const GRIP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg>';
   function renderStatPick() {
     let n = 0;
     $('#statList').innerHTML = order.map((k) => {
@@ -408,7 +403,7 @@
       return '<li data-k="' + k + '" class="' + (on ? 'sel' : '') + (na ? ' na' : '') + '" role="checkbox" aria-checked="' + on + '" tabindex="0">' +
         '<span class="chk">' + (on ? n : '') + '</span><span class="lbl">' + esc(it.label) + '</span>' +
         '<span class="grp">' + esc(CAT.GROUPS[it.group] || '') + '</span>' +
-        '<span class="mv"><button type="button" data-mv="up" aria-label="Feljebb">' + UP + '</button><button type="button" data-mv="down" aria-label="Lejjebb">' + DOWN + '</button></span></li>';
+        '<span class="grip">' + GRIP + '</span></li>';
     }).join('');
     $('#cSel').textContent = String(sel.size);
   }
@@ -426,13 +421,14 @@
 
   // ---------- beállítások ----------
   function renderSettings() {
-    applyTheme(); applyRt();
+    applyTheme();
     $('#crestList').innerHTML = Object.values(TEAMS).sort((a, b) => a.name.localeCompare(b.name, 'hu')).map((t) =>
       '<li>' + badge(t) + '<span class="name">' + esc(t.name) + '</span><span class="acts">' +
       (crestImgs.has(t.id) ? '<button class="btn-small" type="button" data-crest-del="' + t.id + '">Törlés</button>' : '') +
       '<button class="btn-small" type="button" data-crest="' + t.id + '">' + (crestImgs.has(t.id) ? 'Csere' : 'Kép') + '</button></span></li>').join('');
     const at = Math.floor(new Date(D.updated).getTime() / 1000);
-    $('#dataInfo').textContent = 'Beépített adatcsomag: ' + D.tournament + ' 20' + D.season + ', ' + MATCHES.length + ' meccs menetrendje és ' + Object.keys(D.stats).length + ' lejátszott meccs statisztikája. Állapot: ' + F.dateLong(at) + '. Új adatokhoz a data.js fájlt kell frissíteni.';
+    $('#dataInfo').textContent = 'Beépített adatcsomag: ' + LEAGUE + ' 20' + D.season + ', ' + MATCHES.length + ' meccs menetrendje és ' + Object.keys(D.stats).length + ' lejátszott meccs statisztikája. Állapot: ' + F.dateLong(at) + '. Új adatokhoz a data.js fájlt kell frissíteni.';
+    $('#appVersion').textContent = 'Verzió: ' + APP_VERSION;
   }
   let crestTarget = null;
   $('#crestFile').addEventListener('change', () => {
@@ -534,6 +530,87 @@
   function swallowClick() { swallowUntil = Date.now() + 350; }
   document.addEventListener('click', (e) => { if (Date.now() < swallowUntil) { e.stopPropagation(); e.preventDefault(); } }, true);
 
+  // adatok sorrendje: hosszan nyomva a sor "felemelkedik", és oda húzható, ahová kell
+  (function dragReorder() {
+    const list = $('#statList');
+    const scroller = $('#tab-card');
+    const HOLD = 380;      // ms: ennyi ideig kell nyomva tartani
+    const SLOP = 8;       // px: ennél nagyobb mozgás a nyomás alatt görgetésnek számít
+    let p = null;         // nyomás, még nincs húzás
+    let d = null;         // folyamatban lévő húzás
+    let raf = 0;
+
+    function start() {
+      const li = p.li;
+      const items = [...list.children];
+      const lr = list.getBoundingClientRect();
+      const tops = items.map((x) => x.getBoundingClientRect().top - lr.top);
+      const from = items.indexOf(li);
+      d = {
+        li, key: li.dataset.k, from, to: from, items, tops, hs: items.map((x) => x.offsetHeight),
+        grab: p.y - lr.top - tops[from], y: p.y, id: p.id,
+      };
+      li.classList.add('dragging');
+      list.classList.add('reordering');
+      p = null;
+      swallowClick();
+      layout();
+    }
+    function layout() {
+      const lr = list.getBoundingClientRect();
+      const y = d.y - lr.top - d.grab;                 // a felemelt sor teteje a lista koordinátáiban
+      const mid = y + d.hs[d.from] / 2;
+      let to = 0;
+      d.items.forEach((x, i) => { if (i !== d.from && d.tops[i] + d.hs[i] / 2 < mid) to += 1; });
+      d.to = to;
+      const h = d.hs[d.from];
+      d.items.forEach((x, i) => {
+        if (i === d.from) { x.style.transform = 'translateY(' + (y - d.tops[i]) + 'px) scale(1.02)'; return; }
+        let s = 0;
+        if (d.from < d.to && i > d.from && i <= d.to) s = -h;
+        if (d.from > d.to && i >= d.to && i < d.from) s = h;
+        x.style.transform = s ? 'translateY(' + s + 'px)' : '';
+      });
+    }
+    function autoscroll() {
+      if (!d) return;
+      const r = scroller.getBoundingClientRect();
+      const edge = 90;
+      let v = 0;
+      if (d.y < r.top + edge) v = -Math.ceil((r.top + edge - d.y) / 8);
+      else if (d.y > r.bottom - edge - 80) v = Math.ceil((d.y - (r.bottom - edge - 80)) / 8);
+      if (v) { scroller.scrollTop += v; layout(); }
+      raf = requestAnimationFrame(autoscroll);
+    }
+    function finish() {
+      cancelAnimationFrame(raf);
+      if (!d) return;
+      const { key, from, to } = d;
+      d.items.forEach((x) => { x.style.transform = ''; });
+      d.li.classList.remove('dragging');
+      list.classList.remove('reordering');
+      d = null;
+      swallowClick();
+      if (from !== to) { order.splice(order.indexOf(key), 1); order.splice(to, 0, key); selChanged(); }
+    }
+
+    list.addEventListener('pointerdown', (e) => {
+      const li = e.target.closest('li[data-k]');
+      if (!li || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      p = { li, x: e.clientX, y: e.clientY, id: e.pointerId, t: setTimeout(() => { if (p) { start(); raf = requestAnimationFrame(autoscroll); } }, HOLD) };
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (p && (Math.abs(e.clientX - p.x) > SLOP || Math.abs(e.clientY - p.y) > SLOP)) { clearTimeout(p.t); p = null; }
+      if (d && e.pointerId === d.id) { d.y = e.clientY; layout(); }
+    });
+    const up = () => { if (p) { clearTimeout(p.t); p = null; } finish(); };
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    // húzás közben ne görgessen az oldal (iOS)
+    list.addEventListener('touchmove', (e) => { if (d) e.preventDefault(); }, { passive: false });
+    list.addEventListener('contextmenu', (e) => { if (p || d) e.preventDefault(); });
+  })();
+
   // ---------- események ----------
   $('#days').addEventListener('click', (e) => {
     const b = e.target.closest('.match');
@@ -546,7 +623,6 @@
   $('#pgrid').addEventListener('click', (e) => { const b = e.target.closest('button[data-round]'); if (b) { closePop(); goto(Number(b.dataset.round)); } });
   $('#btnNow').onclick = () => goto(currentRound());
   $('#btnBack').onclick = closeDetail;
-  $('#btnTheme').onclick = () => setTheme(isDark() ? 'light' : 'dark');
   $('#seg').addEventListener('click', (e) => { const b = e.target.closest('button[data-seg]'); if (b) setSeg(b.dataset.seg); });
   $('#segSum').addEventListener('click', (e) => { if (e.target.closest('#btnMakeCard')) { cardMatch = current; setTab('card'); } });
   document.querySelectorAll('.tabbar button').forEach((b) => { b.onclick = () => setTab(b.dataset.go); });
@@ -559,17 +635,11 @@
     const li = e.target.closest('li[data-k]');
     if (!li) return;
     const k = li.dataset.k;
-    const mv = e.target.closest('button[data-mv]');
-    if (mv) {
-      const i = order.indexOf(k); const j = mv.dataset.mv === 'up' ? i - 1 : i + 1;
-      if (j < 0 || j >= order.length) return;
-      order.splice(i, 1); order.splice(j, 0, k);
-    } else if (sel.has(k)) sel.delete(k); else sel.add(k);
+    if (sel.has(k)) sel.delete(k); else sel.add(k);
     selChanged();
   });
   $('#statList').addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && e.target.matches('li[data-k]')) { e.preventDefault(); e.target.click(); } });
   $('#themeSeg').addEventListener('click', (e) => { const b = e.target.closest('button[data-theme-pick]'); if (b) setTheme(b.dataset.themePick); });
-  $('#rtSwitch').onclick = () => { if (store.get('nb1.rt') === 'reduce') store.del('nb1.rt'); else store.set('nb1.rt', 'reduce'); applyRt(); };
   $('#crestList').addEventListener('click', (e) => {
     const del = e.target.closest('[data-crest-del]');
     if (del) { const id = Number(del.dataset.crestDel); store.del(crestKey(id)); crestImgs.delete(id); domCache.delete(id); afterCrestChange(); return; }
@@ -585,7 +655,7 @@
   $('#seasonLine').textContent = 'Magyarország · 20' + D.season;
   const played = Object.keys(D.stats).length;
   $('#dataNote').textContent = 'Húzd oldalra a listát a fordulók közti lépéshez. Beépített adatok: ' + MATCHES.length + ' meccs, ' + played + ' lejátszott meccs statisztikája.';
-  applyTheme(); applyRt();
+  applyTheme();
   setTab('matches');
   renderList();
   loadCrests().then(() => { renderList(); });
