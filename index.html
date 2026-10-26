@@ -22,23 +22,7 @@
       var t = localStorage.getItem('nb1.theme');
       if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
     } catch (e) { /* privát mód: alapértelmezés */ }
-  })();
-  // kezdőképernyős mód: a képernyő valódi magassága (iOS 26 hibája miatt az ablak rövidebbnek látszik, lásd app.css)
-  (function () {
-    var root = document.documentElement;
-    var standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
-    if (!standalone) return;
-    root.classList.add('standalone');
-    function fit() {
-      var portrait = window.innerHeight >= window.innerWidth;
-      var sh = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-      root.style.setProperty('--app-h', Math.max(window.innerHeight, sh) + 'px');
-    }
-    fit();
-    window.addEventListener('resize', fit);
-    window.addEventListener('orientationchange', function () { setTimeout(fit, 300); });
-  })();
-</script>
+  })();</script>
 </head>
 <body>
 <div class="app" id="app">
@@ -164,9 +148,13 @@
     <div class="group-label">NÉVJEGY</div>
     <div class="group pad">
       <p class="credit">Készítette: Szabó Ádám</p>
-      <p class="credit" id="appVersion"></p>
+      <button type="button" class="credit version-btn" id="appVersion" aria-label="Verzió (koppintásra kijelző-adatok)"></button>
+      <p class="hint tight diag" id="diag" hidden></p>
     </div>
   </section>
+
+  <!-- az állapotsor (óra, akkumulátor) alatti csík: a görgetett tartalom ne fusson az órába -->
+  <div class="statusbar-scrim" aria-hidden="true"></div>
 
   <!-- ===== Liquid Glass alsó navigáció ===== -->
   <nav class="tabbar glass" id="tabbar" aria-label="Fő navigáció">

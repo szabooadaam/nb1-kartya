@@ -1,7 +1,7 @@
 /* Offline működés: az app fájljai a telefonon is tárolódnak.
  * Ha van net, mindig a friss fájlokat tölti le (így a kezdőképernyős app is frissül),
  * net nélkül a tárolt példányt mutatja. Új kiadásnál érdemes a VERSION-t is növelni. */
-const VERSION = 'nb1-kartya-0.8beta-2';
+const VERSION = 'nb1-kartya-0.8beta-4';
 const FILES = [
   './',
   './index.html',

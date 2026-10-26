@@ -97,14 +97,14 @@ svg { display: block; }
 
 /* ---------- váz ---------- */
 .app { position: fixed; top: 0; bottom: 0; left: 0; right: 0; width: 100%; max-width: 560px; margin: 0 auto; overflow: hidden; }
-/* Kezdőképernyős (telepített) mód, iOS 26: a WebKit (bug 301108) a felső állapotsor magasságával rövidebbnek
-   adja a képernyőt, ezért a 100%, a 100dvh és a bottom: 0 alul üres sávot hagy. Csak a 100lvh adja a teljes magasságot;
-   ha az sem, az index.html szkriptje a képernyő valódi magasságát teszi a --app-h változóba. */
+/* Kezdőképernyős (telepített) mód, iOS 26: a WebKit (bug 301108) a felső állapotsor magasságával rövidebbnek adja
+   az ablakot, amíg az oldal rövidebb a képernyőnél, ezért a rögzített elemek (az .app és az alsó sáv) a rövid szélnél
+   véget érnek, alul üres sávval. Ha a html legalább képernyőnyi magas, az iOS a teljes ablakot adja. A min() felső
+   korlátja miatt a nem áttetsző állapotsoros esetben sem lesz görgethető az oldal. (A shell 100lvh-ra nyújtása NEM
+   segít: a WebKit a rögzített tartalmat a rövid szélnél levágja.) */
 @media (display-mode: standalone) {
-  html, body { height: 100lvh; }
-  .app { bottom: auto; height: 100lvh; height: var(--app-h, 100lvh); }
+  html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top, 0px))); background: var(--bg); }
 }
-:root.standalone .app { bottom: auto; height: var(--app-h, 100lvh); }
 .tab { position: absolute; inset: 0; }
 .scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior: contain; }
 .scroll::-webkit-scrollbar { display: none; }
@@ -263,6 +263,9 @@ svg { display: block; }
 .crest-list .acts { display: flex; gap: 6px; }
 .credit { margin: 0; font-size: 13px; color: var(--fg2); line-height: 1.45; }
 .credit + .credit { margin-top: -8px; }
+.version-btn { text-align: left; color: var(--fg2); }
+.diag { white-space: pre-line; font-variant-numeric: tabular-nums; }
+.statusbar-scrim { position: absolute; left: 0; right: 0; top: 0; height: env(safe-area-inset-top, 0px); z-index: 9; pointer-events: none; background: var(--bg); transition: background-color 0.4s ease; }
 .pkg-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .pkg-status { margin: 0; font-size: 13.5px; line-height: 1.45; white-space: pre-line; color: var(--fg2); }
 .pkg-status.ok { color: var(--ok); font-weight: 600; }

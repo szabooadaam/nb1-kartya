@@ -447,8 +447,34 @@
     const at = Math.floor(new Date(D.updated).getTime() / 1000);
     $('#dataInfo').textContent = (PKG ? 'Használt adatok: ' : 'Beépített adatok: ') + LEAGUE + ' 20' + D.season + ', ' + MATCHES.length + ' meccs menetrendje és ' + Object.keys(D.stats).length + ' lejátszott meccs statisztikája. Állapot: ' + F.dateLong(at) + '.';
     $('#appVersion').textContent = 'Verzió: ' + APP_VERSION;
+    if (!$('#diag').hidden) $('#diag').textContent = diagText();
   }
   let crestTarget = null;
+  // ---------- kijelző-adatok (hibakereséshez: a verzióra koppintva jelenik meg) ----------
+  function diagText() {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:0;top:0;visibility:hidden;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px) 0';
+    document.body.appendChild(probe);
+    const cs = getComputedStyle(probe);
+    const top = Math.round(parseFloat(cs.paddingTop)); const bottom = Math.round(parseFloat(cs.paddingBottom));
+    probe.remove();
+    const standalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+    const app = $('.app').getBoundingClientRect();
+    const screenH = Math.max(screen.width, screen.height);
+    const ok = Math.round(app.bottom) >= screenH - 1;
+    return 'Mód: ' + (standalone ? 'kezdőképernyős webapp' : 'böngésző') +
+      '\nKépernyő: ' + Math.min(screen.width, screen.height) + ' × ' + screenH + ' pont' +
+      '\nAblak (innerHeight): ' + window.innerHeight + ' · oldal: ' + document.documentElement.getBoundingClientRect().height +
+      '\nApp alja: ' + Math.round(app.bottom) + (standalone ? (ok ? ' (a kijelző aljáig ér)' : ' (RÖVIDEBB a kijelzőnél)') : '') +
+      '\nBiztonsági sáv fent / lent: ' + top + ' / ' + bottom +
+      '\n' + navigator.userAgent.replace(/^.*?\((.*?)\).*$/, '$1');
+  }
+  $('#appVersion').onclick = () => {
+    const d = $('#diag');
+    d.hidden = !d.hidden;
+    if (!d.hidden) d.textContent = diagText();
+  };
+
   // ---------- adatcsomag betöltése ----------
   const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
   const stamp = (iso) => { const t = Math.floor(new Date(iso).getTime() / 1000); return isFinite(t) ? F.dateLong(t) + ', ' + F.hhmm(t) : '–'; };
