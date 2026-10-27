@@ -45,7 +45,7 @@
   const ROUNDS = [...new Set(MATCHES.map((m) => m.round))].sort((a, b) => a - b);
   const nowSec = () => Math.floor(Date.now() / 1000);
   const LEAGUE = 'NB1';          // a liga neve mindenhol (jogi okokból nem a szponzori név)
-  const APP_VERSION = '0.9beta';
+  const APP_VERSION = '1.0beta';
 
   function currentRound() {
     const now = nowSec();
@@ -133,11 +133,12 @@
     document.querySelectorAll('#themeSeg button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.themePick === p)));
     const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
     document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', bg));
+    if (tab === 'table') renderTable();   // a zónavonalak színe témától függ
   }
   function setTheme(p) { if (p === 'system') store.del('nb1.theme'); else store.set('nb1.theme', p); applyTheme(); }
 
   // ---------- fülek ----------
-  const TABS = ['matches', 'card', 'settings'];
+  const TABS = ['matches', 'card', 'table', 'settings'];
   function setTab(t) {
     tab = t;
     TABS.forEach((name) => { $('#tab-' + name).hidden = name !== t; });
@@ -145,8 +146,96 @@
       if (b.dataset.go === t) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
     $('#lens').style.transform = 'translateX(' + (TABS.indexOf(t) * 100) + '%)';
+    if (t === 'table') renderTable();
     if (t === 'card') renderCardTab();
     if (t === 'settings') renderSettings();
+  }
+
+  // ---------- tabella (a betöltött meccseredményekből számolva) ----------
+  // Az MLSZ NB1-sorrendje azonos pontszámnál: 1) több győzelem, 2) jobb gólkülönbség, 3) több rúgott gól,
+  // 4) egymás elleni pontok, 5) egymás elleni gólkülönbség, 6) egymás elleni idegenben lőtt gól, 7) fair play, 8) sorsolás.
+  // A 7–8. ponthoz nincs adat: ott név szerint marad a sorrend.
+  let tableKind = 'total';
+  const TABLE_NAMES = { 25596: 'P. Akadémia' };          // rövidebb név a tabellában
+  // zónák az összesített tabellában: az UEFA indulási rendje (access list) a magyar bajnokságra, a 2027/28-as kupákra:
+  // bajnok → BL 2. selejtezőkör; 2. és 3. hely → KL 2. selejtezőkör (az EL-helyet a Magyar Kupa győztese kapja, nem helyezés).
+  // A vonal az adott zóna utolsó helye alatt van; csak a bajnoki hely van jelölve (színe a BL hivatalos logójából).
+  const ZONES = [
+    { after: 1, label: 'Bajnok', title: 'Bajnok, Bajnokok Ligája 2. selejtezőkör', light: '#0e2050', dark: '#6f8cf0' },
+    { after: 10, label: 'Rájátszás', title: 'osztályozó az NB II 2. helyezettje ellen', light: '#e8820c', dark: '#f59b2e' },
+    { after: 11, label: 'Kieső', title: 'kiesés az NB II-be', light: '#d6322c', dark: '#f0524c' },
+  ];
+  const playedIn = (m) => m.status === 'finished' && m.hs != null && m.as != null;
+  function computeTable(kind) {
+    const rows = {};
+    Object.values(TEAMS).forEach((t) => { rows[t.id] = { team: t, mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }; });
+    const sidesOf = (m) => {
+      const s = [];
+      if (kind !== 'away') s.push([m.h.id, m.hs, m.as, false]);
+      if (kind !== 'home') s.push([m.a.id, m.as, m.hs, true]);
+      return s;
+    };
+    MATCHES.forEach((m) => {
+      if (!playedIn(m)) return;
+      sidesOf(m).forEach(([id, gf, ga]) => {
+        const r = rows[id];
+        if (!r) return;
+        r.mp += 1; r.gf += gf; r.ga += ga;
+        if (gf > ga) { r.w += 1; r.pts += 3; } else if (gf === ga) { r.d += 1; r.pts += 1; } else r.l += 1;
+      });
+    });
+    const base = (a, b) => (b.pts - a.pts) || (b.w - a.w) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf);
+    const list = Object.values(rows).sort((a, b) => base(a, b) || a.team.name.localeCompare(b.team.name, 'hu'));
+    // egymás elleni eredmények a még mindig holtversenyben lévő csoportokon belül
+    const out = [];
+    for (let i = 0; i < list.length;) {
+      let j = i + 1;
+      while (j < list.length && base(list[i], list[j]) === 0) j++;
+      const grp = list.slice(i, j);
+      if (grp.length > 1) {
+        const ids = new Set(grp.map((r) => r.team.id));
+        const h2h = {};
+        grp.forEach((r) => { h2h[r.team.id] = { pts: 0, gd: 0, away: 0 }; });
+        MATCHES.forEach((m) => {
+          if (!playedIn(m) || !ids.has(m.h.id) || !ids.has(m.a.id)) return;
+          sidesOf(m).forEach(([id, gf, ga, isAway]) => {
+            const x = h2h[id];
+            x.pts += gf > ga ? 3 : gf === ga ? 1 : 0; x.gd += gf - ga; if (isAway) x.away += gf;
+          });
+        });
+        grp.sort((a, b) => {
+          const x = h2h[a.team.id]; const y = h2h[b.team.id];
+          return (y.pts - x.pts) || (y.gd - x.gd) || (y.away - x.away) || a.team.name.localeCompare(b.team.name, 'hu');
+        });
+      }
+      out.push(...grp);
+      i = j;
+    }
+    return out;
+  }
+  function renderTable() {
+    const done = MATCHES.filter((m) => playedIn(m));
+    const lastRound = done.length ? Math.max(...done.map((m) => m.round)) : 0;
+    $('#tableSub').textContent = LEAGUE + ' · 20' + D.season + (lastRound ? ' · ' + lastRound + '. forduló' : '');
+    document.querySelectorAll('#tableSeg button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.table === tableKind)));
+    const dark = root.dataset.theme === 'dark' || (root.dataset.theme !== 'light' && !!window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+    const rows = computeTable(tableKind);
+    const head = '<div class="st-row st-head" aria-hidden="true"><span class="st-pos"></span><span class="st-team">Csapat</span>' +
+      '<span>M</span><span>GY</span><span>D</span><span>V</span><span>Gól</span><span class="st-pts">P</span></div>';
+    $('#tableBox').innerHTML = head + rows.map((r, i) => {
+      const pos = i + 1;
+      const name = TABLE_NAMES[r.team.id] || r.team.name;
+      // zónavonal a sor fölött (az előző helyezés alatt) – csak az összesített tabellában
+      const z = tableKind === 'total' ? ZONES.find((x) => x.after === i) : null;
+      const sep = z ? '<div class="st-sep" role="separator" aria-label="' + esc(z.title) + '" style="--zc:' + (dark ? z.dark : z.light) + '"><i></i><b>' + esc(z.label) + '</b><i></i></div>' : '';
+      const label = pos + '. ' + r.team.name + ': ' + r.mp + ' meccs, ' + r.w + ' győzelem, ' + r.d + ' döntetlen, ' + r.l + ' vereség, gólok ' + r.gf + '–' + r.ga + ', ' + r.pts + ' pont';
+      return sep + '<div class="st-row' + (z ? ' after-sep' : '') + '" role="row" aria-label="' + esc(label) + '">' +
+        '<span class="st-pos">' + pos + '</span>' +
+        '<span class="st-team">' + badge(r.team) + '<span class="st-name">' + esc(name) + '</span></span>' +
+        '<span>' + r.mp + '</span><span>' + r.w + '</span><span>' + r.d + '</span><span>' + r.l + '</span>' +
+        '<span class="st-goals">' + r.gf + ':' + r.ga + '</span>' +
+        '<span class="st-pts">' + r.pts + '</span></div>';
+    }).join('');
   }
 
   // ---------- forduló-lista ----------
@@ -488,6 +577,11 @@
     const gz = await crypto.subtle.decrypt({ name: 'AES-CBC', iv: body.slice(8, 24) }, ek, body.slice(24));
     const text = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
     const j = JSON.parse(text);
+    // csapatstatisztika-csomag (Adatcsomag2-féle): a megjelenítése még nincs kész
+    if (j && j.format === 'nb1-adatcsomag' && j.kind === 'csapatstat') {
+      throw new Error((j.name || 'Ez') + ' csapatstatisztika-csomag (' + Object.keys((j.data && j.data.teams) || {}).length + ' csapat, ' +
+        ((j.data && j.data.rounds) ? j.data.rounds.join('–') + '. forduló' : '') + '). A megjelenítése az app egy következő verziójában jön.');
+    }
     const d = j && j.data;
     if (!j || j.format !== 'nb1-adatcsomag' || !d || !Array.isArray(d.matches) || !d.matches.length || !d.teams || !d.stats || !d.goals || !d.updated) throw new Error('Az adatcsomag tartalma hiányos.');
     return j;
@@ -693,6 +787,7 @@
   $('#segSum').addEventListener('click', (e) => { if (e.target.closest('#btnMakeCard')) { cardMatch = current; setTab('card'); } });
   document.querySelectorAll('.tabbar button').forEach((b) => { b.onclick = () => setTab(b.dataset.go); });
   $('#btnToMatches').onclick = () => setTab('matches');
+  $('#tableSeg').addEventListener('click', (e) => { const b = e.target.closest('button[data-table]'); if (b) { tableKind = b.dataset.table; renderTable(); } });
   $('#btnSave').onclick = saveCard;
   $('#pBase').onclick = () => { sel = new Set(CAT.DEFAULT_SELECTED); order = CAT.DEFAULT_SELECTED.concat(order.filter((k) => CAT.DEFAULT_SELECTED.indexOf(k) < 0)); selChanged(); };
   $('#pAll').onclick = () => { sel = new Set(order); selChanged(); };

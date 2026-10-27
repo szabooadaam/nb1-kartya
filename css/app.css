@@ -276,18 +276,41 @@ svg { display: block; }
 /* ---------- alsó navigáció ---------- */
 .tabbar {
   position: absolute; left: 20px; right: 20px; bottom: var(--bar-bottom); height: 62px; border-radius: 31px; padding: 4px; z-index: 10;
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .tabbar button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--fg); transition: color 0.3s ease; }
 .tabbar button[aria-current="page"] { color: var(--accent); }
 .tabbar svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .tabbar span:not(.lens) { font-size: 10.5px; font-weight: 600; }
-.lens { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 27px; background: var(--lens); transition: transform 0.5s var(--spring); }
+.lens { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 4); border-radius: 27px; background: var(--lens); transition: transform 0.5s var(--spring); }
 
 /* ---------- forduló-választó ---------- */
 .scrim { position: absolute; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.3); }
 .popover { position: absolute; z-index: 21; left: 16px; right: 16px; top: calc(var(--top) + 130px); padding: 16px; border-radius: 26px; }
 .popover h3 { position: relative; margin: 2px 4px 12px; font-size: 13px; font-weight: 650; color: var(--fg2); }
+/* tabella */
+.table-seg { margin-bottom: 14px; }
+.standings { padding: 4px 0; --st-fs: 13.5px; }   /* épp annyi, hogy a „Kispest Honvéd” címerrel kiférjen (14px-en 0 px tartalék maradt) */
+.st-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) 20px 22px 18px 18px 40px 24px; align-items: center; column-gap: 4px; min-height: 44px; padding: 0 10px 0 8px; font-size: var(--st-fs); font-variant-numeric: tabular-nums; }
+.st-row + .st-row { border-top: 0.5px solid var(--line); }
+.st-row > span { text-align: center; }
+.st-head { min-height: 32px; font-size: 11px; font-weight: 650; color: var(--fg2); letter-spacing: 0.02em; }
+.st-pos { color: var(--fg2); font-weight: 600; }
+.st-team { display: flex; align-items: center; gap: 7px; min-width: 0; text-align: left !important; }
+.st-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-goals { white-space: nowrap; }
+.st-pts { font-weight: 800; }
+/* zónavonal: színes vonal, a megszakításában apró felirattal (BL, KL, Rájátszás, Kieső) */
+.st-sep { position: relative; z-index: 1; display: flex; align-items: center; gap: 5px; height: 12px; margin: -6px 0; padding: 0 10px 0 8px; pointer-events: none; }
+.st-sep i { height: 0.5px; background: var(--zc); }
+.st-sep i:first-child { flex: 0 0 16px; }
+.st-sep i:last-child { flex: 1 1 auto; }
+.st-sep b { font-size: 7.5px; line-height: 1; font-weight: 400; letter-spacing: 0.02em; color: var(--zc); }
+.tiebreak { margin: 10px 16px 0; font-size: 12.5px; color: var(--fg2); line-height: 1.5; }
+.tiebreak p { margin: 0 0 2px; }
+.tiebreak ol { margin: 0; padding-left: 20px; }
+.tiebreak .legend { margin-top: 8px; }
+
 .pgrid { position: relative; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
 .pgrid button { height: 42px; border-radius: 14px; font-size: 15px; font-weight: 650; background: var(--lens); position: relative; }
 .pgrid button.on { background: var(--accent); color: var(--accent-fg); }

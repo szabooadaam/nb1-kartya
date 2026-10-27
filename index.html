@@ -86,6 +86,28 @@
     </div>
   </section>
 
+  <!-- ===== Tabella ===== -->
+  <section class="tab scroll page" id="tab-table" data-tab="table" hidden>
+    <h1 class="page-title">Tabella</h1>
+    <p class="page-sub" id="tableSub"></p>
+    <div class="seg3 table-seg" id="tableSeg" role="radiogroup" aria-label="Tabella fajtája">
+      <button type="button" role="radio" data-table="total" aria-checked="true">Összes</button>
+      <button type="button" role="radio" data-table="home" aria-checked="false">Hazai</button>
+      <button type="button" role="radio" data-table="away" aria-checked="false">Vendég</button>
+    </div>
+    <div class="group standings" id="tableBox"></div>
+    <div class="tiebreak">
+      <p>Azonos pontszám esetén a sorrend:</p>
+      <ol>
+        <li>több győzelem</li>
+        <li>jobb gólkülönbség</li>
+        <li>több rúgott gól</li>
+        <li>az egymás elleni mérkőzéseken szerzett több pont</li>
+        <li>az egymás elleni mérkőzések jobb gólkülönbsége</li>
+      </ol>
+    </div>
+  </section>
+
   <!-- ===== Kártya ===== -->
   <section class="tab scroll page" id="tab-card" data-tab="card" hidden>
     <h1 class="page-title">Kártya</h1>
@@ -163,6 +185,10 @@
     <button type="button" data-go="card" aria-label="Kártya">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 15h7M8.5 18h4M9 9.5l2 2 4-4"/></svg>
       <span>Kártya</span>
+    </button>
+    <button type="button" data-go="table" aria-label="Tabella">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg>
+      <span>Tabella</span>
     </button>
     <button type="button" data-go="settings" aria-label="Beállítások">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>
