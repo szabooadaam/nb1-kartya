@@ -1,7 +1,8 @@
 /* NB1 Kártya – mobil webapp ("A · Klasszikus lista" kinézet).
- * Fülek: Meccsek (forduló-lista + meccs adatlap), Kártya (előnézet, adatválasztó, mentés), Beállítások.
+ * Fülek: Meccsek (forduló-lista + meccs adatlap), Kártya (előnézet, adatválasztó, mentés), Tabella, Csapat (team.js), Beállítások.
  * Gesztusok: a listát oldalra húzva fordulót váltasz; az adatlapon a bal szélről jobbra húzva visszalépsz.
- * Az adatok a data.js-ben vannak (window.NB1_DATA), a kártyát a card.js rajzolja. Hálózatot nem használ.
+ * Beépített adatok: data.js (Adatcsomag1, window.NB1_DATA) és teamdata.js (Adatcsomag2, window.NB1_TEAMDATA);
+ * egy később betöltött adatcsomag felülírja őket. A kártyát a card.js rajzolja. Hálózatot nem használ.
  */
 (function () {
   'use strict';
@@ -27,7 +28,8 @@
   const PKG_KEY = '4/YRV2gLeuTRtx0KPjlF9SUF4AnFBy4KA5legs0tNbY=';
   const PKG_MAC = 'GnengwWDfRKulQ2MXu2eAht0WQTJsi+NfpEOsfIej38=';
   const PKG_MAGIC = 'NB1ADAT1';
-  const PKG_STORE = 'nb1.pkg';
+  const PKG_STORE = 'nb1.pkg';     // meccsadatok (Adatcsomag1-féle)
+  const PKG2_STORE = 'nb1.pkg2';   // csapatstatisztikák (Adatcsomag2-féle)
   function storedPackage() {
     try {
       const j = JSON.parse(store.get(PKG_STORE) || 'null');
@@ -37,6 +39,17 @@
   }
   const PKG = storedPackage();
   if (PKG) D = PKG.data;
+  function storedTeamPackage() {
+    try {
+      const j = JSON.parse(store.get(PKG2_STORE) || 'null');
+      if (j && j.data && j.data.overall && j.data.standings) return j;
+    } catch (e) { /* sérült tár: beépített adatok */ }
+    return null;
+  }
+  const PKG2 = storedTeamPackage();
+  const TDATA = PKG2 ? PKG2.data : window.NB1_TEAMDATA;
+  const DSRC = PKG ? PKG.name : ((window.NB1_DATA_SOURCE && window.NB1_DATA_SOURCE.name) || 'beépített adatok');
+  const TSRC = PKG2 ? PKG2.name : ((window.NB1_TEAMDATA_SOURCE && window.NB1_TEAMDATA_SOURCE.name) || 'beépített adatok');
 
   // ---------- adatok ----------
   const TEAMS = {};
@@ -45,7 +58,7 @@
   const ROUNDS = [...new Set(MATCHES.map((m) => m.round))].sort((a, b) => a - b);
   const nowSec = () => Math.floor(Date.now() / 1000);
   const LEAGUE = 'NB1';          // a liga neve mindenhol (jogi okokból nem a szponzori név)
-  const APP_VERSION = '1.0beta';
+  const APP_VERSION = '0.9beta';
 
   function currentRound() {
     const now = nowSec();
@@ -60,6 +73,7 @@
   let view = currentRound();
   let current = null;     // az adatlapon nyitott meccs
   let cardMatch = null;   // a Kártya fül meccse
+  let TEAM = null;        // a Csapat fül (team.js), az indulásnál jön létre
   let seg = 'sum';
   let order = CAT.defaultOrder();
   let sel = new Set(CAT.DEFAULT_SELECTED);
@@ -134,11 +148,12 @@
     const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
     document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', bg));
     if (tab === 'table') renderTable();   // a zónavonalak színe témától függ
+    if (tab === 'team' && TEAM) TEAM.render();   // a csapatszínek is
   }
   function setTheme(p) { if (p === 'system') store.del('nb1.theme'); else store.set('nb1.theme', p); applyTheme(); }
 
   // ---------- fülek ----------
-  const TABS = ['matches', 'card', 'table', 'settings'];
+  const TABS = ['matches', 'card', 'table', 'team', 'settings'];
   function setTab(t) {
     tab = t;
     TABS.forEach((name) => { $('#tab-' + name).hidden = name !== t; });
@@ -147,6 +162,7 @@
     });
     $('#lens').style.transform = 'translateX(' + (TABS.indexOf(t) * 100) + '%)';
     if (t === 'table') renderTable();
+    if (t === 'team' && TEAM) TEAM.render();
     if (t === 'card') renderCardTab();
     if (t === 'settings') renderSettings();
   }
@@ -534,7 +550,9 @@
     applyTheme();
     renderPkg();
     const at = Math.floor(new Date(D.updated).getTime() / 1000);
-    $('#dataInfo').textContent = (PKG ? 'Használt adatok: ' : 'Beépített adatok: ') + LEAGUE + ' 20' + D.season + ', ' + MATCHES.length + ' meccs menetrendje és ' + Object.keys(D.stats).length + ' lejátszott meccs statisztikája. Állapot: ' + F.dateLong(at) + '.';
+    const tat = TDATA ? Math.floor(new Date(TDATA.updated).getTime() / 1000) : null;
+    $('#dataInfo').textContent = 'Meccsadatok (' + DSRC + (PKG ? '' : ', beépített') + '): ' + LEAGUE + ' 20' + D.season + ', ' + MATCHES.length + ' meccs menetrendje és ' + Object.keys(D.stats).length + ' lejátszott meccs statisztikája. Állapot: ' + F.dateLong(at) + '.' +
+      (TDATA ? '\nCsapatstatisztikák (' + TSRC + (PKG2 ? '' : ', beépített') + '): ' + Object.keys(TDATA.overall).length + ' csapat, ' + (TDATA.rounds || []).join('–') + '. forduló. Állapot: ' + F.dateLong(tat) + '.' : '');
     $('#appVersion').textContent = 'Verzió: ' + APP_VERSION;
     if (!$('#diag').hidden) $('#diag').textContent = diagText();
   }
@@ -577,10 +595,11 @@
     const gz = await crypto.subtle.decrypt({ name: 'AES-CBC', iv: body.slice(8, 24) }, ek, body.slice(24));
     const text = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
     const j = JSON.parse(text);
-    // csapatstatisztika-csomag (Adatcsomag2-féle): a megjelenítése még nincs kész
+    // csapatstatisztika-csomag (Adatcsomag2-féle)
     if (j && j.format === 'nb1-adatcsomag' && j.kind === 'csapatstat') {
-      throw new Error((j.name || 'Ez') + ' csapatstatisztika-csomag (' + Object.keys((j.data && j.data.teams) || {}).length + ' csapat, ' +
-        ((j.data && j.data.rounds) ? j.data.rounds.join('–') + '. forduló' : '') + '). A megjelenítése az app egy következő verziójában jön.');
+      const t = j.data;
+      if (!t || !t.overall || !Object.keys(t.overall).length || !t.standings || !t.updated) throw new Error('A csapatstatisztika-csomag tartalma hiányos.');
+      return j;
     }
     const d = j && j.data;
     if (!j || j.format !== 'nb1-adatcsomag' || !d || !Array.isArray(d.matches) || !d.matches.length || !d.teams || !d.stats || !d.goals || !d.updated) throw new Error('Az adatcsomag tartalma hiányos.');
@@ -588,11 +607,12 @@
   }
   function renderPkg() {
     const st = $('#pkgStatus');
-    st.classList.toggle('ok', !!PKG);
-    st.textContent = PKG
-      ? PKG.name + ' betöltve: ' + stamp(PKG.loaded) + '\nAdatok állapota: ' + stamp(PKG.data.updated)
-      : 'Nincs betöltött adatcsomag, a beépített adatokat használja az app.';
-    $('#btnPkgReset').hidden = !PKG;
+    st.classList.toggle('ok', !!(PKG || PKG2));
+    const line = (p) => p.name + ' betöltve: ' + stamp(p.loaded) + '\nAdatok állapota: ' + stamp(p.data.updated);
+    st.textContent = (PKG || PKG2)
+      ? [PKG && line(PKG), PKG2 && line(PKG2)].filter(Boolean).join('\n')
+      : 'Nincs betöltött adatcsomag: az app a beépített Adatcsomag1 és Adatcsomag2 adatait használja.';
+    $('#btnPkgReset').hidden = !(PKG || PKG2);
   }
   $('#btnPkg').onclick = () => { const f = $('#pkgFile'); f.value = ''; f.click(); };
   $('#pkgFile').addEventListener('change', async () => {
@@ -604,7 +624,7 @@
     try {
       const j = await openPackage(await file.arrayBuffer());
       const rec = { name: j.name || file.name.replace(/\.[^.]+$/, ''), created: j.created, loaded: new Date().toISOString(), data: j.data };
-      try { localStorage.setItem(PKG_STORE, JSON.stringify(rec)); } catch (e) { throw new Error('Nincs elég hely a telefon tárhelyén az adatok mentéséhez.'); }
+      try { localStorage.setItem(j.kind === 'csapatstat' ? PKG2_STORE : PKG_STORE, JSON.stringify(rec)); } catch (e) { throw new Error('Nincs elég hely a telefon tárhelyén az adatok mentéséhez.'); }
       store.set('nb1.pkgJustLoaded', '1');
       location.reload();
     } catch (e) {
@@ -612,7 +632,7 @@
       st.textContent = (e && e.message) || 'Az adatcsomag betöltése nem sikerült.';
     }
   });
-  $('#btnPkgReset').onclick = () => { store.del(PKG_STORE); store.set('nb1.pkgJustLoaded', '1'); location.reload(); };
+  $('#btnPkgReset').onclick = () => { store.del(PKG_STORE); store.del(PKG2_STORE); store.set('nb1.pkgJustLoaded', '1'); location.reload(); };
 
 
   // ---------- gesztusok ----------
@@ -809,14 +829,22 @@
   // ---------- indulás ----------
   $('#seasonLine').textContent = 'Magyarország · 20' + D.season;
   const played = Object.keys(D.stats).length;
-  $('#dataNote').textContent = 'Húzd oldalra a listát a fordulók közti lépéshez. Beépített adatok: ' + MATCHES.length + ' meccs, ' + played + ' lejátszott meccs statisztikája.';
+  $('#dataNote').textContent = 'Húzd oldalra a listát a fordulók közti lépéshez. Adatok (' + DSRC + '): ' + MATCHES.length + ' meccs, ' + played + ' lejátszott meccs statisztikája.';
+  // Csapat fül (team.js)
+  TEAM = window.NB1Team && TDATA ? window.NB1Team.init({
+    TEAMS, MATCHES, store, esc, badge, swallowClick, swallowed: () => Date.now() < swallowUntil,
+    teamData: () => TDATA, teamSource: () => TSRC,
+    short: (id) => TABLE_NAMES[id] || TEAMS[id].name,
+    table: (kind) => computeTable(kind),
+    pairColors: (a, b) => { const fx = COL.fixPair(teamTone(a), teamTone(b), b.color2 || b.color); return { a: fx[0], b: fx[1] }; },
+  }) : null;
   applyTheme();
   // adatcsomag betöltése után a Beállításokban marad, és ott látszik az eredmény
   const justLoaded = store.get('nb1.pkgJustLoaded') === '1';
   store.del('nb1.pkgJustLoaded');
   setTab(justLoaded ? 'settings' : 'matches');
   renderList();
-  loadCrests().then(() => { renderList(); if (current) renderDetail(); if (tab === 'card') renderCardTab(); });
+  loadCrests().then(() => { renderList(); if (current) renderDetail(); if (tab === 'card') renderCardTab(); if (tab === 'team' && TEAM) TEAM.render(); });
   window.NB1App = { openMatch, goto, setTab, setTheme, get view() { return view; } };
 
   // offline működés + frissítés: a kezdőképernyőről indított app minden előtérbe kerüléskor rákérdez az új változatra,

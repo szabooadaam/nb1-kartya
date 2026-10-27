@@ -139,6 +139,28 @@
     </div>
   </section>
 
+  <!-- ===== Csapat ===== -->
+  <section class="tab" id="tab-team" data-tab="team" hidden>
+    <div class="team-head">
+      <h1 class="page-title">Csapat</h1>
+      <div class="seg4" id="teamSeg" role="tablist" aria-label="Csapat lapjai">
+        <span class="seg4-thumb" id="teamThumb"></span>
+        <button type="button" role="tab" data-page="0">Profil</button>
+        <button type="button" role="tab" data-page="1">Rangsor</button>
+        <button type="button" role="tab" data-page="2">Párhuzam</button>
+        <button type="button" role="tab" data-page="3">Stat</button>
+      </div>
+    </div>
+    <div class="team-pager" id="teamPager">
+      <div class="team-track" id="teamTrack">
+        <div class="tm-pg scroll" id="tp0" role="tabpanel" aria-label="Profil"></div>
+        <div class="tm-pg scroll" id="tp1" role="tabpanel" aria-label="Rangsor"></div>
+        <div class="tm-pg scroll" id="tp2" role="tabpanel" aria-label="Párhuzam"></div>
+        <div class="tm-pg scroll" id="tp3" role="tabpanel" aria-label="Stat"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== Beállítások ===== -->
   <section class="tab scroll page" id="tab-settings" data-tab="settings" hidden>
     <h1 class="page-title">Beállítások</h1>
@@ -190,6 +212,10 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg>
       <span>Tabella</span>
     </button>
+    <button type="button" data-go="team" aria-label="Csapat">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5.5c0 4.3-3 7.8-7 9.5-4-1.7-7-5.2-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg>
+      <span>Csapat</span>
+    </button>
     <button type="button" data-go="settings" aria-label="Beállítások">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>
       <span>Beállítások</span>
@@ -202,6 +228,12 @@
     <h3>Forduló kiválasztása</h3>
     <div class="pgrid" id="pgrid"></div>
   </div>
+  <!-- Csapat › Párhuzam: csapatválasztó -->
+  <div class="scrim" id="teamScrim" hidden></div>
+  <div class="popover glass team-pop" id="teamPop" role="dialog" aria-label="Csapat kiválasztása" hidden>
+    <h3 id="teamPopTitle">Csapat</h3>
+    <div class="team-grid" id="teamPopGrid"></div>
+  </div>
   <input type="file" id="pkgFile" hidden>
 </div>
 
@@ -210,6 +242,8 @@
 <script src="js/colors.js"></script>
 <script src="js/card.js"></script>
 <script src="js/data.js"></script>
+<script src="js/teamdata.js"></script>
+<script src="js/team.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
