@@ -306,6 +306,15 @@
     ctx.clearRect(0, 0, W, m.H);
     background(ctx, m.H, p.colors);
 
+    // a bajnokság logója a bal felső sarokban (ha betöltődött)
+    if (p.league && p.league.naturalWidth) {
+      const L = 88;
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 6;
+      ctx.drawImage(p.league, PAD_X - 18, m.top - 18, L, L);
+      ctx.restore();
+    }
+
     // fejléc
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     let y = m.top;

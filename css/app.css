@@ -104,6 +104,8 @@ svg { display: block; }
    segít: a WebKit a rögzített tartalmat a rövid szélnél levágja.) */
 @media (display-mode: standalone) {
   html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top, 0px))); background: var(--bg); }
+  /* az iOS 26 a képernyő tetején, az állapotsor alatt fokozatosan homályosít: a tartalom (címek) kezdődjön lejjebb, a homályos sáv alatt */
+  :root { --top: calc(env(safe-area-inset-top, 0px) + 24px); }
 }
 .tab { position: absolute; inset: 0; }
 .scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior: contain; }
@@ -136,8 +138,7 @@ svg { display: block; }
 .list-scroll { position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--top) + 124px); padding: 0 16px 130px; touch-action: pan-y; }
 #listInner { will-change: transform; }
 .league-row { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 4px; }
-.flag { width: 22px; height: 16px; border-radius: 3px; overflow: hidden; display: flex; flex-direction: column; box-shadow: inset 0 0 0 0.5px var(--line); }
-.flag i { flex: 1; } .flag i:nth-child(1) { background: #ce2939; } .flag i:nth-child(2) { background: #fff; } .flag i:nth-child(3) { background: #477050; }
+.league-logo { width: 24px; height: 24px; flex: none; display: block; }
 .league-name { font-size: 13px; font-weight: 650; }
 .league-sub { font-size: 13px; color: var(--fg2); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chip { font-size: 12px; font-weight: 650; color: var(--accent); padding: 4px 10px; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 0.5px var(--line); }
@@ -165,14 +166,14 @@ svg { display: block; }
 
 .badge { width: 20px; height: 20px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 7.5px; font-weight: 800; color: #fff; overflow: hidden; }
 .badge img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.badge.has-img { background: transparent !important; }
+.badge.has-img { background: transparent !important; border-radius: 0; overflow: visible; }
 .badge.big { width: 60px; height: 60px; font-size: 16px; }
 
 .foot-note { margin: 14px 4px 0; font-size: 12px; color: var(--fg2); line-height: 1.45; }
 .dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.18); opacity: 0; pointer-events: none; transition: opacity 0.42s ease; }
 
 /* ---------- adatlap ---------- */
-.detail-screen { transform: translateX(100%); transition: transform 0.42s var(--ease); z-index: 3; touch-action: pan-y; }
+.detail-screen { transform: translateX(100%); transition: transform 0.42s var(--ease); z-index: 3; touch-action: pan-y;  will-change: transform; }
 .detail-screen.open { transform: translateX(0); box-shadow: -12px 0 30px rgba(0, 0, 0, 0.18); }
 .detail-nav { position: absolute; left: 0; right: 0; top: 0; z-index: 2; padding: var(--top) 16px 0; height: calc(var(--top) + 56px); display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; }
 .back-btn { width: 44px; height: 44px; border-radius: 22px; }

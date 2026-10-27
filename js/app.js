@@ -45,7 +45,7 @@
   const ROUNDS = [...new Set(MATCHES.map((m) => m.round))].sort((a, b) => a - b);
   const nowSec = () => Math.floor(Date.now() / 1000);
   const LEAGUE = 'NB1';          // a liga neve mindenhol (jogi okokból nem a szponzori név)
-  const APP_VERSION = '0.8beta';
+  const APP_VERSION = '0.9beta';
 
   function currentRound() {
     const now = nowSec();
@@ -77,19 +77,25 @@
   })();
   const saveSel = () => store.set(SEL_KEY, JSON.stringify({ order, sel: [...sel] }));
 
-  // ---------- címerek ----------
+  // ---------- logók (beépítve, a footylogos.com NB1-oldaláról, változtatás nélkül) ----------
+  // A Vasas és a Kispest Honvéd logóját a felhasználó adta (az oldalon nincs): átlátszó háttérrel, 320×320-ra igazítva.
+  const LOGOS = {
+    1921: 'debrecen', 1925: 'ferencvaros-tc', 1923: 'gyor', 25397: 'kisvarda', 1915: 'mtk-budapest',
+    5124: 'nyiregyhaza-spartacus', 6059: 'paksi', 25596: 'puskas-akademia', 1924: 'ujpest', 1922: 'zte-zalaegerszeg',
+    1919: 'vasas', 1916: 'kispest-honved',
+  };
   const crestImgs = new Map();
   const domCache = new Map();
-  const crestKey = (id) => 'nb1.crest.' + id;
+  const leagueImg = new Image();
+  leagueImg.src = 'logos/nb1.svg';
+  // korábbi, kézzel betöltött címerek takarítása (ez a funkció megszűnt)
+  try { Object.keys(localStorage).filter((k) => k.indexOf('nb1.crest.') === 0).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* nem baj */ }
   function loadCrests() {
-    return Promise.all(Object.keys(TEAMS).map((id) => new Promise((res) => {
-      const u = store.get(crestKey(id));
-      if (!u) return res();
-      const i = new Image();
-      i.onload = () => { crestImgs.set(Number(id), i); res(); };
-      i.onerror = () => res();
-      i.src = u;
-    })));
+    const one = (src) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+    return Promise.all([
+      ...Object.keys(LOGOS).map((id) => one('logos/' + LOGOS[id] + '.webp').then((i) => { if (i) crestImgs.set(Number(id), i); })),
+      leagueImg.complete ? null : new Promise((res) => { leagueImg.onload = res; leagueImg.onerror = res; }),
+    ]);
   }
 
   // ---------- színek ----------
@@ -297,7 +303,6 @@
     renderDetail();
     $('#detailScroll').scrollTop = 0;
     setDetailOpen(true);
-    try { history.pushState({ detail: id }, ''); } catch (e) { /* nem baj */ }
   }
   function setDetailOpen(open) {
     const det = $('#detail'); const list = $('#listScreen'); const dim = $('#listDim');
@@ -308,11 +313,9 @@
     list.style.transform = open ? 'translateX(-30%)' : '';
     dim.style.opacity = open ? '1' : '0';
   }
-  function closeDetail() {
-    if (history.state && history.state.detail) { history.back(); return; }
-    setDetailOpen(false);
-  }
-  window.addEventListener('popstate', () => { if ($('#detail').classList.contains('open')) setDetailOpen(false); });
+  // Nincs böngésző-előzmény (pushState): különben az iOS saját vissza-gesztusa is elindulna a miénkkel együtt,
+  // ami "szellemképet" és ugrást okozott. A visszalépés csak a saját húzásunkkal és a vissza gombbal megy.
+  function closeDetail() { setDetailOpen(false); }
 
   // ---------- kártya ----------
   function availableFor(m, k) {
@@ -345,6 +348,7 @@
         venue: [m.h.venue, m.h.city].filter(Boolean).join(', '),
         home: { name: m.h.name, code: m.h.code, img: crestImgs.get(m.h.id) || null },
         away: { name: m.a.name, code: m.a.code, img: crestImgs.get(m.a.id) || null },
+        league: leagueImg.complete && leagueImg.naturalWidth ? leagueImg : null,
         score: { h: m.hs, a: m.as, label: 'Végeredmény' },
         colors: colorsFor(m),
         scorers,
@@ -440,16 +444,11 @@
   function renderSettings() {
     applyTheme();
     renderPkg();
-    $('#crestList').innerHTML = Object.values(TEAMS).sort((a, b) => a.name.localeCompare(b.name, 'hu')).map((t) =>
-      '<li>' + badge(t) + '<span class="name">' + esc(t.name) + '</span><span class="acts">' +
-      (crestImgs.has(t.id) ? '<button class="btn-small" type="button" data-crest-del="' + t.id + '">Törlés</button>' : '') +
-      '<button class="btn-small" type="button" data-crest="' + t.id + '">' + (crestImgs.has(t.id) ? 'Csere' : 'Kép') + '</button></span></li>').join('');
     const at = Math.floor(new Date(D.updated).getTime() / 1000);
     $('#dataInfo').textContent = (PKG ? 'Használt adatok: ' : 'Beépített adatok: ') + LEAGUE + ' 20' + D.season + ', ' + MATCHES.length + ' meccs menetrendje és ' + Object.keys(D.stats).length + ' lejátszott meccs statisztikája. Állapot: ' + F.dateLong(at) + '.';
     $('#appVersion').textContent = 'Verzió: ' + APP_VERSION;
     if (!$('#diag').hidden) $('#diag').textContent = diagText();
   }
-  let crestTarget = null;
   // ---------- kijelző-adatok (hibakereséshez: a verzióra koppintva jelenik meg) ----------
   function diagText() {
     const probe = document.createElement('div');
@@ -521,29 +520,6 @@
   });
   $('#btnPkgReset').onclick = () => { store.del(PKG_STORE); store.set('nb1.pkgJustLoaded', '1'); location.reload(); };
 
-  $('#crestFile').addEventListener('change', () => {
-    const file = $('#crestFile').files[0];
-    if (!file || !crestTarget) return;
-    const team = crestTarget;
-    const rd = new FileReader();
-    rd.onload = () => {
-      const src = new Image();
-      src.onload = () => {
-        const S = 256;
-        const c = document.createElement('canvas'); c.width = c.height = S;
-        const k = Math.min(S / src.width, S / src.height);
-        c.getContext('2d').drawImage(src, (S - src.width * k) / 2, (S - src.height * k) / 2, src.width * k, src.height * k);
-        const url = c.toDataURL('image/png');
-        store.set(crestKey(team.id), url);
-        const i = new Image();
-        i.onload = () => { crestImgs.set(team.id, i); domCache.delete(team.id); afterCrestChange(); };
-        i.src = url;
-      };
-      src.src = rd.result;
-    };
-    rd.readAsDataURL(file);
-  });
-  function afterCrestChange() { renderSettings(); renderList(); if (current) renderDetail(); if (tab === 'card') renderCardTab(); }
 
   // ---------- gesztusok ----------
   // forduló-váltás: a lista az ujjat követi
@@ -730,12 +706,6 @@
   });
   $('#statList').addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && e.target.matches('li[data-k]')) { e.preventDefault(); e.target.click(); } });
   $('#themeSeg').addEventListener('click', (e) => { const b = e.target.closest('button[data-theme-pick]'); if (b) setTheme(b.dataset.themePick); });
-  $('#crestList').addEventListener('click', (e) => {
-    const del = e.target.closest('[data-crest-del]');
-    if (del) { const id = Number(del.dataset.crestDel); store.del(crestKey(id)); crestImgs.delete(id); domCache.delete(id); afterCrestChange(); return; }
-    const b = e.target.closest('[data-crest]');
-    if (b) { crestTarget = TEAMS[b.dataset.crest]; const f = $('#crestFile'); f.value = ''; f.click(); }
-  });
   if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { if (!$('#popover').hidden) closePop(); else if ($('#detail').classList.contains('open')) closeDetail(); }
@@ -751,7 +721,7 @@
   store.del('nb1.pkgJustLoaded');
   setTab(justLoaded ? 'settings' : 'matches');
   renderList();
-  loadCrests().then(() => { renderList(); });
+  loadCrests().then(() => { renderList(); if (current) renderDetail(); if (tab === 'card') renderCardTab(); });
   window.NB1App = { openMatch, goto, setTab, setTheme, get view() { return view; } };
 
   // offline működés + frissítés: a kezdőképernyőről indított app minden előtérbe kerüléskor rákérdez az új változatra,

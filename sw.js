@@ -1,7 +1,7 @@
 /* Offline működés: az app fájljai a telefonon is tárolódnak.
  * Ha van net, mindig a friss fájlokat tölti le (így a kezdőképernyős app is frissül),
  * net nélkül a tárolt példányt mutatja. Új kiadásnál érdemes a VERSION-t is növelni. */
-const VERSION = 'nb1-kartya-0.8beta-5';
+const VERSION = 'nb1-kartya-0.9beta-2';
 const FILES = [
   './',
   './index.html',
@@ -15,6 +15,19 @@ const FILES = [
   './js/app.js',
   './fonts/inter-latin-wght-normal.woff2',
   './fonts/inter-latin-ext-wght-normal.woff2',
+  './logos/nb1.svg',
+  './logos/debrecen.webp',
+  './logos/ferencvaros-tc.webp',
+  './logos/gyor.webp',
+  './logos/kisvarda.webp',
+  './logos/mtk-budapest.webp',
+  './logos/nyiregyhaza-spartacus.webp',
+  './logos/paksi.webp',
+  './logos/puskas-akademia.webp',
+  './logos/ujpest.webp',
+  './logos/zte-zalaegerszeg.webp',
+  './logos/vasas.webp',
+  './logos/kispest-honved.webp',
   './icons/icon-32.png',
   './icons/icon-180.png',
   './icons/icon-192.png',
