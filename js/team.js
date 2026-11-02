@@ -355,7 +355,7 @@
       tr.style.transform = 'translateX(' + (-st.page * 25) + '%)';
       th.style.transform = 'translateX(' + (st.page * 100) + '%)';
       document.querySelectorAll('#teamSeg button').forEach((b, k) => b.setAttribute('aria-selected', String(k === st.page)));
-      document.querySelectorAll('.tm-pg').forEach((p, k) => { p.setAttribute('aria-hidden', String(k !== st.page)); p.inert = k !== st.page; });
+      document.querySelectorAll('#teamTrack .tm-pg').forEach((p, k) => { p.setAttribute('aria-hidden', String(k !== st.page)); p.inert = k !== st.page; });
     }
     function setTeam(id) { st.team = id; ctx.store.set('nb1.team', String(id)); if (st.other === id) st.other = null; render(); }
 
@@ -365,7 +365,7 @@
       if (ctx.swallowed()) return;
       const t = e.target;
       let b;
-      if ((b = t.closest('.tm-picker button[data-team]'))) { const sc = b.parentElement.scrollLeft; setTeam(Number(b.dataset.team)); document.querySelectorAll('.tm-picker').forEach((p) => { p.scrollLeft = sc; }); return; }
+      if ((b = t.closest('.tm-picker button[data-team]'))) { const sc = b.parentElement.scrollLeft; setTeam(Number(b.dataset.team)); document.querySelectorAll('#teamPager .tm-picker').forEach((p) => { p.scrollLeft = sc; }); return; }
       if ((b = t.closest('button[data-cat]'))) { const sc = b.parentElement.scrollLeft; st.cat = Number(b.dataset.cat); renderPage(1); $('#tp1 .tm-chips').scrollLeft = sc; return; }
       if ((b = t.closest('button[data-stat]'))) { const sc = b.parentElement.scrollLeft; st.stat = b.dataset.stat; renderPage(3); $('#tp3 .tm-chips').scrollLeft = sc; return; }
       if (t.closest('#tmTotal')) { st.total = !st.total; const sc = $('#tp3 .tm-chips').scrollLeft; renderPage(3); $('#tp3 .tm-chips').scrollLeft = sc; return; }

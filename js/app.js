@@ -640,6 +640,8 @@
   store.del('nb1.pkgJustLoaded');
   setTab(justLoaded ? 'settings' : 'matches');
   renderList();
+  // indulóképernyő: az animáció (css) végén kivesszük
+  setTimeout(() => { const sp = document.getElementById('splash'); if (sp) sp.remove(); }, 1500);
   loadCrests().then(() => { renderList(); if (current) renderDetail(); if (tab === 'team' && TEAM) TEAM.render(); if (tab === 'player' && PLAYER) PLAYER.render(); });
   window.NB1App = { openMatch, goto, setTab, setTheme, get view() { return view; }, playerData: () => PDATA };
 

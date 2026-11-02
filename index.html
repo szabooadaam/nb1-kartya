@@ -15,6 +15,18 @@
 <link rel="icon" href="icons/icon-32.png" type="image/png" sizes="32x32">
 <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
+<!-- iOS indítókép (a főképernyő ikonjára nyomva ez látszik elsőként; az induló animáció innen folytatódik) -->
+<link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1320x2868.png">
+<link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1206x2622.png">
+<link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1260x2736.png">
+<link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1290x2796.png">
+<link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1179x2556.png">
+<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1170x2532.png">
+<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1284x2778.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/splash/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/splash/splash-750x1334.png">
 <link rel="stylesheet" href="css/app.css">
 <script>
   // a téma még a rajzolás előtt beáll (nincs villanás)
@@ -26,6 +38,8 @@
   })();</script>
 </head>
 <body>
+<!-- indulóképernyő: a logó középen ránagyít, a zöld háttér elhalványul (css: .splash, app.js veszi ki) -->
+<div class="splash" id="splash" aria-hidden="true"><img src="icons/icon-512.png" alt="" width="168" height="168"></div>
 <div class="app" id="app">
 
   <!-- ===== Meccsek ===== -->
