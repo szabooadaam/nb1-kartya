@@ -68,7 +68,7 @@
   // tizedespont -> tizedesvessző
   const hu = (s) => String(s == null ? '' : s).replace(/(\d)\.(\d)/g, '$1,$2');
 
-  // Sofascore megjelenített érték: "54%", "88/146 (60%)", "100.1 km", "1.21", "9"
+  // megjelenített érték: "54%", "88/146 (60%)", "1.21", "-0.35", "9"
   function parseDisplay(s) {
     s = String(s == null ? '' : s).trim();
     let m = s.match(/^(\d+)\/(\d+)\s*\((\d+)%\)$/);
@@ -82,7 +82,10 @@
   function ratio(h, a, hv, av) {
     let x; let y;
     if (h.pct != null && a.pct != null) { x = h.pct; y = a.pct; } else { x = Number(hv); y = Number(av); }
-    if (!isFinite(x) || !isFinite(y) || x + y <= 0) return 0.5;
+    if (!isFinite(x) || !isFinite(y)) return 0.5;
+    // negatív érték (pl. megelőzött gól): a skála a kisebbik értéktől indul
+    const lo = Math.min(x, y, 0); x -= lo; y -= lo;
+    if (x + y <= 0) return 0.5;
     return x / (x + y);
   }
 

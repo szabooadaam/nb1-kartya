@@ -1,15 +1,15 @@
 /* NB1 Kártya – mobil webapp ("A · Klasszikus lista" kinézet).
- * Fülek: Meccsek (forduló-lista + meccs adatlap), Kártya (előnézet, adatválasztó, mentés), Tabella, Csapat (team.js), Beállítások.
+ * Fülek: Meccsek (forduló-lista + meccs adatlap), Játékos (player.js), Tabella, Csapat (team.js), Beállítások.
  * Gesztusok: a listát oldalra húzva fordulót váltasz; az adatlapon a bal szélről jobbra húzva visszalépsz.
- * Beépített adatok: data.js (Adatcsomag1, window.NB1_DATA) és teamdata.js (Adatcsomag2, window.NB1_TEAMDATA);
- * egy később betöltött adatcsomag felülírja őket. A kártyát a card.js rajzolja. Hálózatot nem használ.
+ * Beépített adatok (mind Opta): data.js (Adatcsomag1, window.NB1_DATA), teamdata.js (Adatcsomag2, window.NB1_TEAMDATA)
+ * és playerdata.js (Adatcsomag3, window.NB1_PLAYERDATA, játékosstatisztikák);
+ * egy később betöltött adatcsomag felülírja őket. Hálózatot nem használ.
  */
 (function () {
   'use strict';
   const F = window.NB1Format;
   const CAT = window.NB1Catalog;
   const COL = window.NB1Colors;
-  const CARD = window.NB1Card;
   let D = window.NB1_DATA;   // a beépített adatok; egy betöltött adatcsomag felülírja (lásd lent)
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -30,6 +30,8 @@
   const PKG_MAGIC = 'NB1ADAT1';
   const PKG_STORE = 'nb1.pkg';     // meccsadatok (Adatcsomag1-féle)
   const PKG2_STORE = 'nb1.pkg2';   // csapatstatisztikák (Adatcsomag2-féle)
+  const PKG3_STORE = 'nb1.pkg3';   // játékosstatisztikák (Adatcsomag3-féle)
+  const STORE_OF = { csapatstat: PKG2_STORE, jatekosstat: PKG3_STORE };
   function storedPackage() {
     try {
       const j = JSON.parse(store.get(PKG_STORE) || 'null');
@@ -47,9 +49,19 @@
     return null;
   }
   const PKG2 = storedTeamPackage();
+  function storedPlayerPackage() {
+    try {
+      const j = JSON.parse(store.get(PKG3_STORE) || 'null');
+      if (j && j.data && j.data.players && Array.isArray(j.data.matches) && Array.isArray(j.data.fields)) return j;
+    } catch (e) { /* sérült tár: beépített adatok */ }
+    return null;
+  }
+  const PKG3 = storedPlayerPackage();
   const TDATA = PKG2 ? PKG2.data : window.NB1_TEAMDATA;
+  const PDATA = PKG3 ? PKG3.data : window.NB1_PLAYERDATA;
   const DSRC = PKG ? PKG.name : ((window.NB1_DATA_SOURCE && window.NB1_DATA_SOURCE.name) || 'beépített adatok');
   const TSRC = PKG2 ? PKG2.name : ((window.NB1_TEAMDATA_SOURCE && window.NB1_TEAMDATA_SOURCE.name) || 'beépített adatok');
+  const PSRC = PKG3 ? PKG3.name : ((window.NB1_PLAYERDATA_SOURCE && window.NB1_PLAYERDATA_SOURCE.name) || 'beépített adatok');
 
   // ---------- adatok ----------
   const TEAMS = {};
@@ -72,25 +84,9 @@
   let tab = 'matches';
   let view = currentRound();
   let current = null;     // az adatlapon nyitott meccs
-  let cardMatch = null;   // a Kártya fül meccse
   let TEAM = null;        // a Csapat fül (team.js), az indulásnál jön létre
+  let PLAYER = null;      // a Játékos fül (player.js), az indulásnál jön létre
   let seg = 'sum';
-  let order = CAT.defaultOrder();
-  let sel = new Set(CAT.DEFAULT_SELECTED);
-
-  const SEL_KEY = 'nb1.selection.v1';
-  (function loadSel() {
-    try {
-      const j = JSON.parse(store.get(SEL_KEY) || 'null');
-      if (j && Array.isArray(j.order)) {
-        const known = j.order.filter((k) => CAT.byKey[k]);
-        order = known.concat(CAT.ITEMS.map((i) => i.key).filter((k) => known.indexOf(k) < 0));
-        sel = new Set((j.sel || []).filter((k) => CAT.byKey[k]));
-      }
-    } catch (e) { /* alapértelmezés marad */ }
-  })();
-  const saveSel = () => store.set(SEL_KEY, JSON.stringify({ order, sel: [...sel] }));
-
   // ---------- logók (beépítve, a footylogos.com NB1-oldaláról, változtatás nélkül) ----------
   // A Vasas és a Kispest Honvéd logóját a felhasználó adta (az oldalon nincs): átlátszó háttérrel, 320×320-ra igazítva.
   const LOGOS = {
@@ -149,11 +145,12 @@
     document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', bg));
     if (tab === 'table') renderTable();   // a zónavonalak színe témától függ
     if (tab === 'team' && TEAM) TEAM.render();   // a csapatszínek is
+    if (tab === 'player' && PLAYER) PLAYER.render();
   }
   function setTheme(p) { if (p === 'system') store.del('nb1.theme'); else store.set('nb1.theme', p); applyTheme(); }
 
   // ---------- fülek ----------
-  const TABS = ['matches', 'card', 'table', 'team', 'settings'];
+  const TABS = ['matches', 'player', 'table', 'team', 'settings'];
   function setTab(t) {
     tab = t;
     TABS.forEach((name) => { $('#tab-' + name).hidden = name !== t; });
@@ -163,7 +160,7 @@
     $('#lens').style.transform = 'translateX(' + (TABS.indexOf(t) * 100) + '%)';
     if (t === 'table') renderTable();
     if (t === 'team' && TEAM) TEAM.render();
-    if (t === 'card') renderCardTab();
+    if (t === 'player' && PLAYER) PLAYER.render();
     if (t === 'settings') renderSettings();
   }
 
@@ -261,7 +258,7 @@
     const st = F.statusInfo(m);
     if (st.kind === 'postponed' || st.kind === 'canceled') return '<span class="warn">' + esc(st.label) + '</span>';
     if (st.kind === 'finished') return '<span>' + esc(F.hhmm(m.ts)) + '</span><b>Vége</b>';
-    return '<b>' + esc(F.hhmm(m.ts)) + '</b>';
+    return '<b>' + esc(m.tbd ? '–:–' : F.hhmm(m.ts)) + '</b>';   // tbd: a napot már kiírták, a kezdési időt még nem
   }
   function rowHTML(m) {
     const st = F.statusInfo(m);
@@ -355,7 +352,7 @@
     big.classList.toggle('time', !done);
     if (done) { big.textContent = m.hs + ' – ' + m.as; $('#mSmall').textContent = 'Vége'; }
     else if (st.kind === 'postponed' || st.kind === 'canceled') { big.textContent = '–'; $('#mSmall').textContent = st.label; }
-    else { big.textContent = F.hhmm(m.ts); $('#mSmall').textContent = F.dayHead(m.ts); }
+    else { big.textContent = m.tbd ? '–:–' : F.hhmm(m.ts); $('#mSmall').textContent = F.dayHead(m.ts) + (m.tbd ? ' · időpont később' : ''); }
     const venue = [m.h.venue, m.h.city].filter(Boolean).join(', ');
     $('#meta').textContent = LEAGUE + ' · ' + m.round + '. forduló · ' + F.dateLong(m.ts) + (venue ? ' · ' + venue : '');
 
@@ -373,7 +370,6 @@
         }).join('');
       } else sum += '<p class="empty-msg">' + (goals ? 'Gól nélküli döntetlen.' : 'Gól-adat nincs a csomagban.') + '</p>';
       sum += '<div style="height:8px"></div></div>';
-      if (D.stats[m.id]) sum += '<div class="panel" style="padding-top:12px"><button class="btn-primary" type="button" id="btnMakeCard"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 15h7M8.5 18h4M9 9.5l2 2 4-4"/></svg>Kártya készítése</button></div>';
     }
     $('#segSum').innerHTML = sum;
 
@@ -403,7 +399,6 @@
     const m = MATCHES.find((x) => x.id === id);
     if (!m) return;
     current = m;
-    if (D.stats[m.id]) cardMatch = m;
     seg = 'sum';
     renderDetail();
     $('#detailScroll').scrollTop = 0;
@@ -422,129 +417,6 @@
   // ami "szellemképet" és ugrást okozott. A visszalépés csak a saját húzásunkkal és a vissza gombbal megy.
   function closeDetail() { setDetailOpen(false); }
 
-  // ---------- kártya ----------
-  function availableFor(m, k) {
-    if (!m || !D.stats[m.id]) return true;
-    if (k === 'scorers') return !!D.goals[m.id];
-    return !!D.stats[m.id][k];
-  }
-  function buildPayload(m) {
-    const st = D.stats[m.id] || {};
-    const gl = D.goals[m.id];
-    const rows = []; const missing = [];
-    let scorers = null;
-    order.filter((k) => sel.has(k)).forEach((k) => {
-      const it = CAT.byKey[k];
-      if (!it) return;
-      if (it.special === 'scorers') {
-        if (gl && gl.length) scorers = gl.map((g) => ({ side: g[0], name: g[1], minute: g[2], kind: g[3] }));
-        else if (!gl) missing.push(it.label);
-        return;
-      }
-      const s = st[k];
-      if (s) rows.push({ key: k, label: it.label, home: s[0], away: s[1], homeValue: s[2], awayValue: s[3] });
-      else missing.push(it.label);
-    });
-    return {
-      missing,
-      payload: {
-        title: LEAGUE + ' · ' + m.round + '. forduló',
-        dateText: F.dateLong(m.ts) + ' · ' + F.hhmm(m.ts),
-        venue: [m.h.venue, m.h.city].filter(Boolean).join(', '),
-        home: { name: m.h.name, code: m.h.code, img: crestImgs.get(m.h.id) || null },
-        away: { name: m.a.name, code: m.a.code, img: crestImgs.get(m.a.id) || null },
-        league: leagueImg.complete && leagueImg.naturalWidth ? leagueImg : null,
-        score: { h: m.hs, a: m.as, label: 'Végeredmény' },
-        colors: colorsFor(m),
-        scorers,
-        rows,
-        note: rows.some((r) => r.key === 'expectedGoals') ? 'xG = várható gól: a kialakított helyzetek minősége alapján azt mutatja, mennyi gólt „érdemelt” a csapat.' : '',
-      },
-    };
-  }
-  const fileName = (m) => 'NB1_' + F.ascii(m.h.name) + '-' + F.ascii(m.a.name) + '_' + m.round + '-ford_' + F.dayKey(m.ts).replace(/-/g, '') + '.jpg';
-
-  let lastBlob = null; let seq = 0; let pvTimer = null;
-  function showPv(msg) { $('#pvMsg').textContent = msg; $('#pvMsg').hidden = false; $('#preview').hidden = true; }
-  function schedulePreview() { clearTimeout(pvTimer); pvTimer = setTimeout(renderPreview, 80); }
-  async function renderPreview() {
-    const my = ++seq;
-    const m = cardMatch;
-    lastBlob = null;
-    $('#btnSave').disabled = true;
-    $('#missing').textContent = '';
-    if (!m) return;
-    if (!sel.size) { showPv('Jelölj ki legalább egy adatot lent.'); return; }
-    const b = buildPayload(m);
-    if (!b.payload.rows.length && !b.payload.scorers) { showPv('Egyik kiválasztott adat sem érhető el ehhez a meccshez.'); return; }
-    try {
-      const off = document.createElement('canvas');
-      await CARD.render(off, b.payload);
-      if (my !== seq) return;
-      const pv = $('#preview');
-      pv.width = off.width; pv.height = off.height;
-      pv.getContext('2d').drawImage(off, 0, 0);
-      pv.hidden = false; $('#pvMsg').hidden = true;
-      $('#missing').textContent = b.missing.length ? 'Ennél a meccsnél nem érhető el: ' + b.missing.join(', ') + '.' : '';
-      off.toBlob((blob) => {
-        if (my !== seq || !blob) return;
-        lastBlob = blob;
-        $('#btnSave').disabled = false;
-      }, 'image/jpeg', 0.95);
-    } catch (e) {
-      showPv('Nem sikerült megrajzolni a kártyát: ' + (e && e.message || e));
-    }
-  }
-  async function saveCard() {
-    if (!lastBlob || !cardMatch) return;
-    const name = fileName(cardMatch);
-    const file = new File([lastBlob], name, { type: 'image/jpeg' });
-    const label = $('#saveLabel');
-    try {
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file] });
-        label.textContent = 'Kész';
-      } else {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(lastBlob);
-        a.download = name;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-        label.textContent = 'Letöltve';
-      }
-    } catch (e) {
-      label.textContent = e && e.name === 'AbortError' ? 'Mentés megszakítva' : 'A mentés nem sikerült';
-    }
-    setTimeout(() => { label.textContent = 'Mentés a Fotókba'; }, 1800);
-  }
-
-  const GRIP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg>';
-  function renderStatPick() {
-    let n = 0;
-    $('#statList').innerHTML = order.map((k) => {
-      const it = CAT.byKey[k];
-      const on = sel.has(k);
-      if (on) n += 1;
-      const na = !availableFor(cardMatch, k);
-      return '<li data-k="' + k + '" class="' + (on ? 'sel' : '') + (na ? ' na' : '') + '" role="checkbox" aria-checked="' + on + '" tabindex="0">' +
-        '<span class="chk">' + (on ? n : '') + '</span><span class="lbl">' + esc(it.label) + '</span>' +
-        '<span class="grp">' + esc(CAT.GROUPS[it.group] || '') + '</span>' +
-        '<span class="grip">' + GRIP + '</span></li>';
-    }).join('');
-    $('#cSel').textContent = String(sel.size);
-  }
-  function selChanged() { saveSel(); renderStatPick(); schedulePreview(); }
-
-  function renderCardTab() {
-    const m = cardMatch;
-    $('#cardEmpty').hidden = !!m;
-    $('#cardWork').hidden = !m;
-    if (!m) { $('#cardSub').textContent = 'Nincs kiválasztott meccs.'; return; }
-    $('#cardSub').textContent = m.h.name + ' – ' + m.a.name + ' · ' + m.round + '. forduló';
-    renderStatPick();
-    schedulePreview();
-  }
-
   // ---------- beállítások ----------
   function renderSettings() {
     applyTheme();
@@ -552,7 +424,9 @@
     const at = Math.floor(new Date(D.updated).getTime() / 1000);
     const tat = TDATA ? Math.floor(new Date(TDATA.updated).getTime() / 1000) : null;
     $('#dataInfo').textContent = 'Meccsadatok (' + DSRC + (PKG ? '' : ', beépített') + '): ' + LEAGUE + ' 20' + D.season + ', ' + MATCHES.length + ' meccs menetrendje és ' + Object.keys(D.stats).length + ' lejátszott meccs statisztikája. Állapot: ' + F.dateLong(at) + '.' +
-      (TDATA ? '\nCsapatstatisztikák (' + TSRC + (PKG2 ? '' : ', beépített') + '): ' + Object.keys(TDATA.overall).length + ' csapat, ' + (TDATA.rounds || []).join('–') + '. forduló. Állapot: ' + F.dateLong(tat) + '.' : '');
+      (TDATA ? '\nCsapatstatisztikák (' + TSRC + (PKG2 ? '' : ', beépített') + '): ' + Object.keys(TDATA.overall).length + ' csapat, ' + (TDATA.rounds || []).join('–') + '. forduló. Állapot: ' + F.dateLong(tat) + '.' : '') +
+      (PDATA ? '\nJátékosstatisztikák (' + PSRC + (PKG3 ? '' : ', beépített') + '): ' + Object.keys(PDATA.players).length + ' játékos, ' + PDATA.matches.length + ' meccs, ' + (PDATA.rounds || []).join('–') + '. forduló. Állapot: ' + F.dateLong(Math.floor(new Date(PDATA.updated).getTime() / 1000)) + '.' : '') +
+      '\nForrás: Opta (eredmenyek.com).';
     $('#appVersion').textContent = 'Verzió: ' + APP_VERSION;
     if (!$('#diag').hidden) $('#diag').textContent = diagText();
   }
@@ -601,18 +475,25 @@
       if (!t || !t.overall || !Object.keys(t.overall).length || !t.standings || !t.updated) throw new Error('A csapatstatisztika-csomag tartalma hiányos.');
       return j;
     }
+    // játékosstatisztika-csomag (Adatcsomag3-féle)
+    if (j && j.format === 'nb1-adatcsomag' && j.kind === 'jatekosstat') {
+      const p = j.data;
+      if (!p || !p.players || !Object.keys(p.players).length || !Array.isArray(p.matches) || !Array.isArray(p.fields) || !p.updated) throw new Error('A játékosstatisztika-csomag tartalma hiányos.');
+      return j;
+    }
     const d = j && j.data;
     if (!j || j.format !== 'nb1-adatcsomag' || !d || !Array.isArray(d.matches) || !d.matches.length || !d.teams || !d.stats || !d.goals || !d.updated) throw new Error('Az adatcsomag tartalma hiányos.');
     return j;
   }
   function renderPkg() {
     const st = $('#pkgStatus');
-    st.classList.toggle('ok', !!(PKG || PKG2));
+    const any = !!(PKG || PKG2 || PKG3);
+    st.classList.toggle('ok', any);
     const line = (p) => p.name + ' betöltve: ' + stamp(p.loaded) + '\nAdatok állapota: ' + stamp(p.data.updated);
-    st.textContent = (PKG || PKG2)
-      ? [PKG && line(PKG), PKG2 && line(PKG2)].filter(Boolean).join('\n')
-      : 'Nincs betöltött adatcsomag: az app a beépített Adatcsomag1 és Adatcsomag2 adatait használja.';
-    $('#btnPkgReset').hidden = !(PKG || PKG2);
+    st.textContent = any
+      ? [PKG && line(PKG), PKG2 && line(PKG2), PKG3 && line(PKG3)].filter(Boolean).join('\n')
+      : 'Nincs betöltött adatcsomag: az app a beépített Adatcsomag1, Adatcsomag2 és Adatcsomag3 adatait használja.';
+    $('#btnPkgReset').hidden = !any;
   }
   $('#btnPkg').onclick = () => { const f = $('#pkgFile'); f.value = ''; f.click(); };
   $('#pkgFile').addEventListener('change', async () => {
@@ -624,7 +505,7 @@
     try {
       const j = await openPackage(await file.arrayBuffer());
       const rec = { name: j.name || file.name.replace(/\.[^.]+$/, ''), created: j.created, loaded: new Date().toISOString(), data: j.data };
-      try { localStorage.setItem(j.kind === 'csapatstat' ? PKG2_STORE : PKG_STORE, JSON.stringify(rec)); } catch (e) { throw new Error('Nincs elég hely a telefon tárhelyén az adatok mentéséhez.'); }
+      try { localStorage.setItem(STORE_OF[j.kind] || PKG_STORE, JSON.stringify(rec)); } catch (e) { throw new Error('Nincs elég hely a telefon tárhelyén az adatok mentéséhez.'); }
       store.set('nb1.pkgJustLoaded', '1');
       location.reload();
     } catch (e) {
@@ -632,7 +513,7 @@
       st.textContent = (e && e.message) || 'Az adatcsomag betöltése nem sikerült.';
     }
   });
-  $('#btnPkgReset').onclick = () => { store.del(PKG_STORE); store.del(PKG2_STORE); store.set('nb1.pkgJustLoaded', '1'); location.reload(); };
+  $('#btnPkgReset').onclick = () => { store.del(PKG_STORE); store.del(PKG2_STORE); store.del(PKG3_STORE); store.set('nb1.pkgJustLoaded', '1'); location.reload(); };
 
 
   // ---------- gesztusok ----------
@@ -710,87 +591,6 @@
   function swallowClick() { swallowUntil = Date.now() + 350; }
   document.addEventListener('click', (e) => { if (Date.now() < swallowUntil) { e.stopPropagation(); e.preventDefault(); } }, true);
 
-  // adatok sorrendje: hosszan nyomva a sor "felemelkedik", és oda húzható, ahová kell
-  (function dragReorder() {
-    const list = $('#statList');
-    const scroller = $('#tab-card');
-    const HOLD = 380;      // ms: ennyi ideig kell nyomva tartani
-    const SLOP = 8;       // px: ennél nagyobb mozgás a nyomás alatt görgetésnek számít
-    let p = null;         // nyomás, még nincs húzás
-    let d = null;         // folyamatban lévő húzás
-    let raf = 0;
-
-    function start() {
-      const li = p.li;
-      const items = [...list.children];
-      const lr = list.getBoundingClientRect();
-      const tops = items.map((x) => x.getBoundingClientRect().top - lr.top);
-      const from = items.indexOf(li);
-      d = {
-        li, key: li.dataset.k, from, to: from, items, tops, hs: items.map((x) => x.offsetHeight),
-        grab: p.y - lr.top - tops[from], y: p.y, id: p.id,
-      };
-      li.classList.add('dragging');
-      list.classList.add('reordering');
-      p = null;
-      swallowClick();
-      layout();
-    }
-    function layout() {
-      const lr = list.getBoundingClientRect();
-      const y = d.y - lr.top - d.grab;                 // a felemelt sor teteje a lista koordinátáiban
-      const mid = y + d.hs[d.from] / 2;
-      let to = 0;
-      d.items.forEach((x, i) => { if (i !== d.from && d.tops[i] + d.hs[i] / 2 < mid) to += 1; });
-      d.to = to;
-      const h = d.hs[d.from];
-      d.items.forEach((x, i) => {
-        if (i === d.from) { x.style.transform = 'translateY(' + (y - d.tops[i]) + 'px) scale(1.02)'; return; }
-        let s = 0;
-        if (d.from < d.to && i > d.from && i <= d.to) s = -h;
-        if (d.from > d.to && i >= d.to && i < d.from) s = h;
-        x.style.transform = s ? 'translateY(' + s + 'px)' : '';
-      });
-    }
-    function autoscroll() {
-      if (!d) return;
-      const r = scroller.getBoundingClientRect();
-      const edge = 90;
-      let v = 0;
-      if (d.y < r.top + edge) v = -Math.ceil((r.top + edge - d.y) / 8);
-      else if (d.y > r.bottom - edge - 80) v = Math.ceil((d.y - (r.bottom - edge - 80)) / 8);
-      if (v) { scroller.scrollTop += v; layout(); }
-      raf = requestAnimationFrame(autoscroll);
-    }
-    function finish() {
-      cancelAnimationFrame(raf);
-      if (!d) return;
-      const { key, from, to } = d;
-      d.items.forEach((x) => { x.style.transform = ''; });
-      d.li.classList.remove('dragging');
-      list.classList.remove('reordering');
-      d = null;
-      swallowClick();
-      if (from !== to) { order.splice(order.indexOf(key), 1); order.splice(to, 0, key); selChanged(); }
-    }
-
-    list.addEventListener('pointerdown', (e) => {
-      const li = e.target.closest('li[data-k]');
-      if (!li || (e.pointerType === 'mouse' && e.button !== 0)) return;
-      p = { li, x: e.clientX, y: e.clientY, id: e.pointerId, t: setTimeout(() => { if (p) { start(); raf = requestAnimationFrame(autoscroll); } }, HOLD) };
-    });
-    window.addEventListener('pointermove', (e) => {
-      if (p && (Math.abs(e.clientX - p.x) > SLOP || Math.abs(e.clientY - p.y) > SLOP)) { clearTimeout(p.t); p = null; }
-      if (d && e.pointerId === d.id) { d.y = e.clientY; layout(); }
-    });
-    const up = () => { if (p) { clearTimeout(p.t); p = null; } finish(); };
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
-    // húzás közben ne görgessen az oldal (iOS)
-    list.addEventListener('touchmove', (e) => { if (d) e.preventDefault(); }, { passive: false });
-    list.addEventListener('contextmenu', (e) => { if (p || d) e.preventDefault(); });
-  })();
-
   // ---------- események ----------
   $('#days').addEventListener('click', (e) => {
     const b = e.target.closest('.match');
@@ -804,26 +604,12 @@
   $('#btnNow').onclick = () => goto(currentRound());
   $('#btnBack').onclick = closeDetail;
   $('#seg').addEventListener('click', (e) => { const b = e.target.closest('button[data-seg]'); if (b) setSeg(b.dataset.seg); });
-  $('#segSum').addEventListener('click', (e) => { if (e.target.closest('#btnMakeCard')) { cardMatch = current; setTab('card'); } });
   document.querySelectorAll('.tabbar button').forEach((b) => { b.onclick = () => setTab(b.dataset.go); });
-  $('#btnToMatches').onclick = () => setTab('matches');
   $('#tableSeg').addEventListener('click', (e) => { const b = e.target.closest('button[data-table]'); if (b) { tableKind = b.dataset.table; renderTable(); } });
-  $('#btnSave').onclick = saveCard;
-  $('#pBase').onclick = () => { sel = new Set(CAT.DEFAULT_SELECTED); order = CAT.DEFAULT_SELECTED.concat(order.filter((k) => CAT.DEFAULT_SELECTED.indexOf(k) < 0)); selChanged(); };
-  $('#pAll').onclick = () => { sel = new Set(order); selChanged(); };
-  $('#pNone').onclick = () => { sel = new Set(); selChanged(); };
-  $('#statList').addEventListener('click', (e) => {
-    const li = e.target.closest('li[data-k]');
-    if (!li) return;
-    const k = li.dataset.k;
-    if (sel.has(k)) sel.delete(k); else sel.add(k);
-    selChanged();
-  });
-  $('#statList').addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && e.target.matches('li[data-k]')) { e.preventDefault(); e.target.click(); } });
   $('#themeSeg').addEventListener('click', (e) => { const b = e.target.closest('button[data-theme-pick]'); if (b) setTheme(b.dataset.themePick); });
   if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { if (!$('#popover').hidden) closePop(); else if ($('#detail').classList.contains('open')) closeDetail(); }
+    if (e.key === 'Escape') { if (PLAYER && !$('#playerPop').hidden) PLAYER.closePick(); else if (!$('#popover').hidden) closePop(); else if ($('#detail').classList.contains('open')) closeDetail(); }
   });
 
   // ---------- indulás ----------
@@ -838,14 +624,24 @@
     table: (kind) => computeTable(kind),
     pairColors: (a, b) => { const fx = COL.fixPair(teamTone(a), teamTone(b), b.color2 || b.color); return { a: fx[0], b: fx[1] }; },
   }) : null;
+  // Játékos fül (player.js); egy meccsre koppintva a Meccsek fülön nyílik meg az adatlap
+  PLAYER = window.NB1Player && PDATA ? window.NB1Player.init({
+    TEAMS, store, esc, badge, swallowClick, swallowed: () => Date.now() < swallowUntil,
+    playerData: () => PDATA,
+    short: (id) => TABLE_NAMES[id] || TEAMS[id].name,
+    table: () => computeTable('total'),
+    tone: (id) => teamTone(TEAMS[id]),
+    pairColors: (a, b) => { const fx = COL.fixPair(teamTone(a), teamTone(b), b.color2 || b.color); return { a: fx[0], b: fx[1] }; },
+    openMatch: (id) => { const m = MATCHES.find((x) => x.id === id); if (!m) return; setTab('matches'); goto(m.round, false); openMatch(id); },
+  }) : null;
   applyTheme();
   // adatcsomag betöltése után a Beállításokban marad, és ott látszik az eredmény
   const justLoaded = store.get('nb1.pkgJustLoaded') === '1';
   store.del('nb1.pkgJustLoaded');
   setTab(justLoaded ? 'settings' : 'matches');
   renderList();
-  loadCrests().then(() => { renderList(); if (current) renderDetail(); if (tab === 'card') renderCardTab(); if (tab === 'team' && TEAM) TEAM.render(); });
-  window.NB1App = { openMatch, goto, setTab, setTheme, get view() { return view; } };
+  loadCrests().then(() => { renderList(); if (current) renderDetail(); if (tab === 'team' && TEAM) TEAM.render(); if (tab === 'player' && PLAYER) PLAYER.render(); });
+  window.NB1App = { openMatch, goto, setTab, setTheme, get view() { return view; }, playerData: () => PDATA };
 
   // offline működés + frissítés: a kezdőképernyőről indított app minden előtérbe kerüléskor rákérdez az új változatra,
   // és ha jött, egyszer újratölti magát

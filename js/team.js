@@ -6,35 +6,46 @@
 (function () {
   'use strict';
 
-  // ---------- a 120 szezonmutató, csoportosítva ----------
+  // ---------- a szezonmutatók (Opta), csoportosítva ----------
   // k: kulcs (darabszám: összesen + meccsenként), avg: már átlag (pct: százalék), ratio: [sikeres, összes, százalék-kulcs], low: a kevesebb a jobb
+  // Az a sor, amelynek a kulcsa nincs a csomagban (pl. a régi Sofascore-mutatók), nem jelenik meg.
   const GROUPS = [
     { id: 'att', name: 'Támadás', rows: [
-      { l: 'Lőtt gól', k: 'goalsScored' }, { l: 'Várható gól (xG)', k: 'expectedGoals', d: 1 }, { l: 'Gólpassz', k: 'assists' },
+      { l: 'Lőtt gól', k: 'goalsScored' }, { l: 'Várható gól (xG)', k: 'expectedGoals', d: 1 },
+      { l: 'Kaput találó xG (xGOT)', k: 'expectedGoalsOnTarget', d: 1 }, { l: 'Várható gólpassz (xA)', k: 'expectedAssists', d: 1 },
+      { l: 'Gólpassz', k: 'assists' },
       { l: 'Lövés', k: 'shots' }, { l: 'Kaput eltaláló lövés', k: 'shotsOnTarget' }, { l: 'Kaput elkerülő lövés', k: 'shotsOffTarget' },
       { l: 'Blokkolt lövés', k: 'blockedScoringAttempt' }, { l: 'Lövés a 16-oson belülről', k: 'shotsFromInsideTheBox' },
       { l: 'Lövés a 16-oson kívülről', k: 'shotsFromOutsideTheBox' }, { l: 'Gól a 16-oson belülről', k: 'goalsFromInsideTheBox' },
-      { l: 'Gól a 16-oson kívülről', k: 'goalsFromOutsideTheBox' }, { l: 'Fejes gól', k: 'headedGoals' }, { l: 'Bal lábas gól', k: 'leftFootGoals' },
+      { l: 'Gól a 16-oson kívülről', k: 'goalsFromOutsideTheBox' }, { l: 'Fejes gól', k: 'headedGoals' }, { l: 'Fejes lövés', k: 'headedShots' },
+      { l: 'Bal lábas gól', k: 'leftFootGoals' },
       { l: 'Jobb lábas gól', k: 'rightFootGoals' }, { l: 'Nagy helyzet', k: 'bigChances' }, { l: 'Kialakított nagy helyzet', k: 'bigChancesCreated' },
       { l: 'Kihagyott nagy helyzet', k: 'bigChancesMissed' }, { l: 'Kapufa, léc', k: 'hitWoodwork' },
       { l: 'Büntetőgól / büntető', ratio: ['penaltyGoals', 'penaltiesTaken'] }, { l: 'Szabadrúgásgól / lövés', ratio: ['freeKickGoals', 'freeKickShots'] },
       { l: 'Kontratámadás', k: 'fastBreaks' }, { l: 'Lövés kontrából', k: 'fastBreakShots' }, { l: 'Gól kontrából', k: 'fastBreakGoals' },
-      { l: 'Sikeres csel', ratio: ['successfulDribbles', 'dribbleAttempts'] }, { l: 'Kulcspassz', k: 'keyPasses' }, { l: 'Szöglet', k: 'corners' },
-      { l: 'Les', k: 'offsides' }, { l: 'Labdaérintés', k: 'touches' },
+      { l: 'Sikeres csel', ratio: ['successfulDribbles', 'dribbleAttempts'] }, { l: 'Kulcspassz', k: 'keyPasses' },
+      { l: 'Pontos mélységi passz', k: 'accurateThroughBalls' }, { l: 'Érintés az ellenfél 16-osában', k: 'touchesInOppBox' },
+      { l: 'Szöglet', k: 'corners' }, { l: 'Les', k: 'offsides' }, { l: 'Labdaérintés', k: 'touches' },
+      { l: 'Kiharcolt szabálytalanság', k: 'fouledTimes' },
     ] },
     { id: 'pass', name: 'Passzok', rows: [
       { l: 'Labdabirtoklás', avg: 'averageBallPossession', pct: true },
       { l: 'Pontos passz', ratio: ['accuratePasses', 'totalPasses', 'accuratePassesPercentage'] },
       { l: 'Pontos passz a saját térfélen', ratio: ['accurateOwnHalfPasses', 'totalOwnHalfPasses', 'accurateOwnHalfPassesPercentage'] },
       { l: 'Pontos passz az ellenfél térfelén', ratio: ['accurateOppositionHalfPasses', 'totalOppositionHalfPasses', 'accurateOppositionHalfPassesPercentage'] },
+      { l: 'Pontos passz az utolsó harmadban', ratio: ['accurateFinalThirdPasses', 'totalFinalThirdPasses', 'accurateFinalThirdPassesPercentage'] },
       { l: 'Pontos hosszú labda', ratio: ['accurateLongBalls', 'totalLongBalls', 'accurateLongBallsPercentage'] },
       { l: 'Pontos beadás', ratio: ['accurateCrosses', 'totalCrosses', 'accurateCrossesPercentage'] },
     ] },
     { id: 'def', name: 'Védekezés', rows: [
       { l: 'Kapott gól', k: 'goalsConceded', low: true }, { l: 'Kapott gól nélküli meccs', k: 'cleanSheets', noPer: true },
-      { l: 'Szerelés', k: 'tackles' }, { l: 'Elfogott passz', k: 'interceptions' }, { l: 'Felszabadítás', k: 'clearances' },
+      { l: 'Engedett xG (xGA)', k: 'expectedGoalsAgainst', d: 1, low: true }, { l: 'Engedett kaput találó xG', k: 'xGOTAgainst', d: 1, low: true },
+      { l: 'Megelőzött gól (kapus)', k: 'goalsPrevented', d: 2 },
+      { l: 'Szerelés', k: 'tackles' }, { l: 'Sikeres szerelés', ratio: ['tacklesWon', 'tackles'] },
+      { l: 'Elfogott passz', k: 'interceptions' }, { l: 'Felszabadítás', k: 'clearances' },
       { l: 'Mentés a gólvonalról', k: 'clearancesOffLine' }, { l: 'Szerelés utolsó emberként', k: 'lastManTackles' },
       { l: 'Visszaszerzett labda', k: 'ballRecovery' }, { l: 'Védekező közreműködés', k: 'defensiveContributions' }, { l: 'Kapusvédés', k: 'saves' },
+      { l: 'Kapus öklözés', k: 'punches' },
       { l: 'Hiba, amiből lövés lett', k: 'errorsLeadingToShot', low: true }, { l: 'Hiba, amiből gól lett', k: 'errorsLeadingToGoal', low: true },
       { l: 'Okozott büntető', k: 'penaltiesCommited', low: true }, { l: 'Kapott gól büntetőből', k: 'penaltyGoalsConceded', low: true },
       { l: 'Öngól', k: 'ownGoals', low: true },
@@ -50,6 +61,8 @@
       { l: 'Kiállítás két sárgával', k: 'yellowRedCards', low: true }, { l: 'Piros lap', k: 'redCards', low: true },
     ] },
     { id: 'opp', name: 'Ellenfelek ellene', rows: [
+      { l: 'Várható gólpassz (xA)', k: 'expectedAssistsAgainst', d: 1, low: true },
+      { l: 'Érintés a csapat 16-osában', k: 'touchesInOppBoxAgainst', low: true },
       { l: 'Lövés', k: 'shotsAgainst', low: true }, { l: 'Kaput eltaláló lövés', k: 'shotsOnTargetAgainst', low: true },
       { l: 'Kaput elkerülő lövés', k: 'shotsOffTargetAgainst' }, { l: 'Blokkolt lövés', k: 'blockedScoringAttemptAgainst' },
       { l: 'Blokkolt lövés (másik számlálás)', k: 'shotsBlockedAgainst' },
@@ -79,10 +92,14 @@
 
   // ---------- mutatók a rangsorhoz, a ranglistához és az összevetéshez ----------
   // v(o): az érték egy csapat szezonösszesítőjéből; d: tizedesek; u: mértékegység; low: a kevesebb a jobb; tot: összesítve is mutatható
+  // Amelyik mutatóhoz nincs adat a csomagban (pl. futásadatok az Opta-csomagban), az nem jelenik meg (lásd avail).
   const per = (k) => (o) => o[k] / o.matches;
   const M = {
     goals: { l: 'Gól / meccs', s: 'Gól', v: per('goalsScored'), d: 2, tot: 'goalsScored' },
     xg: { l: 'Várható gól (xG) / meccs', s: 'xG', v: per('expectedGoals'), d: 2, tot: 'expectedGoals' },
+    xgot: { l: 'Kaput találó xG (xGOT) / meccs', s: 'xGOT', v: per('expectedGoalsOnTarget'), d: 2, tot: 'expectedGoalsOnTarget' },
+    xa: { l: 'Várható gólpassz (xA) / meccs', s: 'xA', v: per('expectedAssists'), d: 2, tot: 'expectedAssists' },
+    box: { l: 'Érintés az ellenfél 16-osában / meccs', s: '16-os érintés', v: per('touchesInOppBox'), d: 1, tot: 'touchesInOppBox' },
     shots: { l: 'Lövés / meccs', s: 'Lövés', v: per('shots'), d: 1, tot: 'shots' },
     sot: { l: 'Kaput eltaláló lövés / meccs', s: 'Kapura', v: per('shotsOnTarget'), d: 1, tot: 'shotsOnTarget' },
     big: { l: 'Nagy helyzet / meccs', s: 'Nagy helyzet', v: per('bigChances'), d: 1, tot: 'bigChances' },
@@ -93,10 +110,13 @@
     passp: { l: 'Pontos passz', s: 'Passz %', v: (o) => o.accuratePassesPercentage, d: 1, u: '%' },
     passes: { l: 'Pontos passz / meccs', s: 'Passz', v: per('accuratePasses'), d: 0, tot: 'accuratePasses' },
     opph: { l: 'Pontos passz az ellenfél térfelén', s: 'Passz elöl', v: (o) => o.accurateOppositionHalfPassesPercentage, d: 1, u: '%' },
+    f3: { l: 'Pontos passz az utolsó harmadban', s: 'Utolsó harmad', v: (o) => o.accurateFinalThirdPassesPercentage, d: 1, u: '%' },
     longb: { l: 'Pontos hosszú labda', s: 'Hosszú labda', v: (o) => o.accurateLongBallsPercentage, d: 1, u: '%' },
     cross: { l: 'Pontos beadás', s: 'Beadás', v: (o) => o.accurateCrossesPercentage, d: 1, u: '%' },
     conc: { l: 'Kapott gól / meccs', s: 'Kapott gól', v: per('goalsConceded'), d: 2, low: true, tot: 'goalsConceded' },
     clean: { l: 'Kapott gól nélküli meccs', s: 'Kapott gól nélkül', v: (o) => o.cleanSheets, d: 0 },
+    xga: { l: 'Engedett xG (xGA) / meccs', s: 'xGA', v: per('expectedGoalsAgainst'), d: 2, low: true, tot: 'expectedGoalsAgainst' },
+    prev: { l: 'Megelőzött gól (kapus)', s: 'Megelőzött gól', v: (o) => o.goalsPrevented, d: 2 },
     tack: { l: 'Szerelés / meccs', s: 'Szerelés', v: per('tackles'), d: 1, tot: 'tackles' },
     inter: { l: 'Elfogott passz / meccs', s: 'Elfogott passz', v: per('interceptions'), d: 1, tot: 'interceptions' },
     clear: { l: 'Felszabadítás / meccs', s: 'Felszabadítás', v: per('clearances'), d: 1, tot: 'clearances' },
@@ -119,15 +139,15 @@
     sprint: { l: 'Sprint / meccs', s: 'Sprint', v: (o) => o.numberOfSprintsPerGame, d: 0 },
   };
   const RANK_CATS = [
-    { name: 'Támadás', keys: ['goals', 'xg', 'shots', 'sot', 'big', 'drib', 'corners', 'keyp'] },
-    { name: 'Passzok', keys: ['poss', 'passp', 'passes', 'opph', 'longb', 'cross'] },
-    { name: 'Védekezés', keys: ['conc', 'clean', 'tack', 'inter', 'clear', 'recov', 'saves', 'shAg', 'bigAg', 'errs'] },
+    { name: 'Támadás', keys: ['goals', 'xg', 'xgot', 'xa', 'shots', 'sot', 'big', 'box', 'drib', 'corners', 'keyp'] },
+    { name: 'Passzok', keys: ['poss', 'passp', 'passes', 'opph', 'f3', 'longb', 'cross'] },
+    { name: 'Védekezés', keys: ['conc', 'xga', 'clean', 'prev', 'tack', 'inter', 'clear', 'recov', 'saves', 'shAg', 'bigAg', 'errs'] },
     { name: 'Párharcok', keys: ['duels', 'ground', 'aerial', 'duelsN', 'lost'] },
     { name: 'Fegyelem', keys: ['fouls', 'yellow', 'red', 'pens'] },
     { name: 'Egyéb', keys: ['rating', 'km', 'sprint'] },
   ];
-  const STAT_KEYS = ['goals', 'xg', 'shots', 'sot', 'big', 'corners', 'poss', 'passp', 'conc', 'clean', 'tack', 'duels', 'fouls', 'yellow', 'rating', 'km'];
-  const CMP_KEYS = ['goals', 'xg', 'shots', 'sot', 'big', 'poss', 'passp', 'corners', 'conc', 'shAg', 'tack', 'duels', 'fouls', 'yellow'];
+  const STAT_KEYS = ['goals', 'xg', 'xgot', 'xa', 'shots', 'sot', 'big', 'corners', 'poss', 'passp', 'conc', 'xga', 'clean', 'tack', 'duels', 'fouls', 'yellow', 'rating', 'km'];
+  const CMP_KEYS = ['goals', 'xg', 'xgot', 'shots', 'sot', 'big', 'poss', 'passp', 'corners', 'conc', 'xga', 'shAg', 'tack', 'duels', 'fouls', 'yellow'];
   const RADAR = [
     ['Gólerő', (o) => o.goalsScored / o.matches], ['Lövések', (o) => o.shots / o.matches], ['Passzjáték', (o) => o.accuratePassesPercentage],
     ['Labdabirtoklás', (o) => o.averageBallPossession], ['Párharcok', (o) => o.duelsWonPercentage], ['Védekezés', (o) => -o.goalsConceded / o.matches],
@@ -163,6 +183,10 @@
     }
     const avg = (f) => { const a = ids().map((i) => f(O(i))); return a.reduce((s, x) => s + x, 0) / a.length; };
     const tier = (r, n) => (r <= 3 ? 'g' : r > n - 3 ? 'r' : 'm');
+    // csak a csomagban ténylegesen meglévő mutatók látszanak (a régi Sofascore- és az Opta-csomag mezői eltérnek)
+    const has = (o, r) => [r.k, r.avg].concat(r.ratio || []).filter(Boolean).every((k) => o[k] != null);
+    const avail = (key) => ids().every((i) => { const x = M[key].v(O(i)); return x != null && isFinite(x); });
+    const cats = () => RANK_CATS.map((c) => ({ name: c.name, keys: c.keys.filter(avail) })).filter((c) => c.keys.length);
     function ensureTeams() {
       const all = ids();
       if (!all.includes(st.team)) st.team = (table()[0] && table()[0].team.id) || all[0];
@@ -228,8 +252,11 @@
         '<p>' + posOf(id) + '. hely · ' + (tr ? tr.pts : 0) + ' pont · ' + o.matches + ' meccs</p><div class="tm-form">' + form(id) + '</div></div></div>' +
         '<div class="tm-tiles">' + tile('goals') + tile('conc') + tile('poss') + tile('xg') + '</div>' +
         '<div class="tm-ghead"><span>HAZAI / VENDÉG</span></div><div class="group tm-ha-box">' + haRows(id) + '</div>' +
-        GROUPS.map((g) => '<div class="tm-ghead"><span>' + esc(g.name.toUpperCase()) + '</span><span>' + (g.id === 'pass' || g.id === 'duel' ? 'arány' : 'meccsenként') + '</span></div>' +
-          '<div class="group">' + g.rows.map((r) => rowHTML(o, r)).join('') + '</div>').join('') +
+        GROUPS.map((g) => {
+          const rows = g.rows.filter((r) => has(o, r));
+          return rows.length ? '<div class="tm-ghead"><span>' + esc(g.name.toUpperCase()) + '</span><span>' + (g.id === 'pass' || g.id === 'duel' ? 'arány' : 'meccsenként') + '</span></div>' +
+            '<div class="group">' + rows.map((r) => rowHTML(o, r)).join('') + '</div>' : '';
+        }).join('') +
         '<p class="hint tm-note">Forrás: ' + esc(ctx.teamSource()) + ' (' + esc((TD().rounds || []).join('–')) + '. forduló).</p>';
     }
 
@@ -246,9 +273,11 @@
           '<div class="tm-track"><span class="fill ' + tier(r, n) + '" style="width:' + pos(v).toFixed(1) + '%"></span><span class="avg" style="left:' + pos(a).toFixed(1) + '%"></span></div>' +
           '<div class="tm-scale"><span>' + fmt(m.low ? mx : mn, m.d) + '</span><span>liga átlag ' + fmt(a, m.d) + '</span><span>' + fmt(m.low ? mn : mx, m.d) + '</span></div></div>';
       };
+      const cs = cats();
+      if (st.cat >= cs.length) st.cat = 0;
       return picker() +
-        '<div class="tm-chips hscroll" role="tablist">' + RANK_CATS.map((c, i) => '<button type="button" data-cat="' + i + '" aria-selected="' + (i === st.cat) + '">' + c.name + '</button>').join('') + '</div>' +
-        '<div class="group">' + RANK_CATS[st.cat].keys.map(card).join('') + '</div>' +
+        '<div class="tm-chips hscroll" role="tablist">' + cs.map((c, i) => '<button type="button" data-cat="' + i + '" aria-selected="' + (i === st.cat) + '">' + c.name + '</button>').join('') + '</div>' +
+        '<div class="group">' + cs[st.cat].keys.map(card).join('') + '</div>' +
         '<p class="hint tm-note">A szám a csapat helyezése a 12 csapat között. A sáv bal széle a liga leggyengébb, jobb széle a legjobb értéke; a kis jel a liga átlaga.</p>';
     }
 
@@ -283,14 +312,16 @@
         '<div class="group">' +
           '<div class="tm-cmp"><div class="tm-cmp-top"><b>' + posOf(A) + '.</b><span>Helyezés</span><b>' + posOf(B) + '.</b></div></div>' +
           '<div class="tm-cmp"><div class="tm-cmp-top"><b>' + (ta ? ta.pts : 0) + '</b><span>Pont</span><b>' + (tb ? tb.pts : 0) + '</b></div></div>' +
-          CMP_KEYS.map(cmp).join('') + '</div>' +
+          CMP_KEYS.filter(avail).map(cmp).join('') + '</div>' +
         '<p class="hint tm-note">Meccsenkénti átlagok. A csapatot a nevére koppintva cserélheted. A radar a liga legjobb és leggyengébb értékéhez méri a két csapatot.</p>';
     }
 
     // ---------- 4. Stat ----------
     function renderStat() {
+      const keys = STAT_KEYS.filter(avail);
+      if (keys.indexOf(st.stat) < 0) st.stat = keys[0];
       const m = M[st.stat]; const canTot = !!m.tot; const total = canTot && st.total;
-      const f = total ? (o) => o[m.tot] : m.v; const d = total ? (m.tot === 'expectedGoals' ? 1 : 0) : m.d;
+      const f = total ? (o) => o[m.tot] : m.v; const d = total ? (/^expected/.test(m.tot) ? 1 : 0) : m.d;
       const list = ids().sort((a, b) => (m.low ? f(O(a)) - f(O(b)) : f(O(b)) - f(O(a))));
       const mx = Math.max(...list.map((i) => f(O(i)))) || 1; const av = avg(f);
       let html = ''; let done = false;
@@ -302,7 +333,7 @@
           '<span class="nm"><span>' + esc(name(id)) + '</span><i style="width:' + Math.max(2, 100 * v / mx).toFixed(1) + '%"></i></span><span class="val">' + fmt(v, d) + (m.u || '') + '</span></button>';
       });
       const label = total ? m.l.replace(' / meccs', ' (összesen)') : m.l;
-      return '<div class="tm-chips hscroll" role="tablist">' + STAT_KEYS.map((k) => '<button type="button" data-stat="' + k + '" aria-selected="' + (k === st.stat) + '">' + M[k].s + '</button>').join('') + '</div>' +
+      return '<div class="tm-chips hscroll" role="tablist">' + keys.map((k) => '<button type="button" data-stat="' + k + '" aria-selected="' + (k === st.stat) + '">' + M[k].s + '</button>').join('') + '</div>' +
         '<div class="group tm-statsel"><b>' + esc(label) + '</b>' + (canTot ? '<button type="button" id="tmTotal">' + (total ? 'Összesen' : 'Meccsenként') + ' ▾</button>' : '') + '</div>' +
         '<div class="group tm-lb-box">' + html + '</div>' +
         (m.low ? '<p class="hint tm-note">Ennél a mutatónál a kevesebb a jobb, ezért a legkisebb érték áll elöl.</p>' : '');

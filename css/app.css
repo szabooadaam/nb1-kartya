@@ -422,3 +422,84 @@ svg { display: block; }
 .team-grid button .badge { width: 30px; height: 30px; }
 .team-grid button[aria-current="true"] { background: var(--lens); }
 .team-grid button:disabled { opacity: 0.3; }
+
+/* ===== Játékos fül (player.js) – a Csapat fül elemeire épül ===== */
+.tm-rk.b { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.pl-search { display: flex; align-items: center; gap: 8px; width: 100%; height: 38px; padding: 0 12px; margin: 0 0 10px; border-radius: 12px; background: var(--surface2); color: var(--fg2); font-size: 15px; text-align: left; }
+.pl-search svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.pl-squad { margin-bottom: 10px; }
+#pp0 .tm-picker, .pl-squad { position: relative; }   /* a kijelölt elemhez görgetéshez (offsetLeft) */
+.pl-squad button { height: 30px; padding: 0 12px; font-size: 13px; }
+.pl-hero { display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 16px; }
+.pl-av { position: relative; flex: none; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 19px; font-weight: 800; letter-spacing: 0.02em; background: linear-gradient(155deg, var(--tc), color-mix(in srgb, var(--tc) 45%, #000)); }
+.pl-av .pl-av-crest { position: absolute; right: -4px; bottom: -4px; width: 24px; height: 24px; padding: 3px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); }
+.pl-av.sm { width: 44px; height: 44px; font-size: 15px; }
+.pl-av.sm .pl-av-crest { width: 20px; height: 20px; }
+.pl-hero-txt { flex: 1; min-width: 0; }
+.pl-hero-txt h2 { font-size: 20px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-hero-txt p { font-size: 12.5px; color: var(--fg2); margin-top: 2px; }
+.pl-hero-rt { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.pl-hero-rt .pl-rt { font-size: 19px; padding: 6px 9px; border-radius: 11px; }
+.pl-hero-rt small { font-size: 10.5px; line-height: 1.3; color: var(--fg2); }
+.pl-form { display: flex; gap: 4px; margin-top: 6px; }
+.pl-form .pl-rt { min-width: 0; padding: 2px 5px; font-size: 11px; border-radius: 6px; }
+.pl-rt { display: inline-block; min-width: 36px; padding: 3px 6px; border-radius: 7px; color: #fff; font-size: 13px; font-weight: 750; text-align: center; font-variant-numeric: tabular-nums; }
+.r8 { background: #2f5bff; } .r7 { background: #1f9d55; } .r65 { background: #7fb321; } .r6 { background: #e29a0b; } .r5 { background: #dc4b35; } .rn { background: #9aa2b1; }
+circle.r8 { fill: #2f5bff; } circle.r7 { fill: #1f9d55; } circle.r65 { fill: #7fb321; } circle.r6 { fill: #e29a0b; } circle.r5 { fill: #dc4b35; }
+.pl-row .k { display: flex; flex-direction: column; gap: 5px; }
+.pl-pct { display: block; height: 4px; width: 100%; max-width: 190px; border-radius: 2px; background: var(--surface2); overflow: hidden; }
+.pl-pct u { display: block; height: 100%; border-radius: 2px; background: var(--accent); }
+.pl-pct u.g { background: var(--good); } .pl-pct u.r { background: var(--bad); }
+.pl-filters { display: flex; gap: 6px; margin: 0 0 10px; }
+.pl-filters select { flex: 1; min-width: 0; height: 32px; padding: 0 8px; border-radius: 10px; border: 0; background: var(--surface); box-shadow: inset 0 0 0 0.5px var(--line); color: var(--fg); font: inherit; font-size: 13px; font-weight: 600; }
+.pl-filters select:disabled { color: var(--fg2); }
+.pl-count { font-size: 12px; color: var(--fg2); }
+.pl-lb { display: grid; grid-template-columns: 22px 24px minmax(0, 1fr) auto; align-items: center; column-gap: 9px; width: 100%; padding: 8px 14px 8px 10px; text-align: left; border-top: 0.5px solid var(--line); }
+.pl-lb .badge { width: 24px; height: 24px; }
+.pl-lb .n { font-size: 13px; font-weight: 650; text-align: center; color: var(--fg2); }
+.pl-lb .nm { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pl-lb .nm b { font-size: 14.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-lb .nm small { font-size: 11.5px; color: var(--fg2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-lb .nm i { display: block; height: 4px; border-radius: 2px; background: var(--fg2); opacity: 0.35; }
+.pl-lb .val { text-align: right; font-size: 17px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.pl-lb .val small { display: block; font-size: 10.5px; font-weight: 500; color: var(--fg2); }
+.pl-lb.me { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.pl-lb.me .nm i { background: var(--accent); opacity: 1; }
+.pl-lb:active, .pl-ml:active, .pl-vs-p:active { background: var(--press); }
+.pl-vs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 4px; padding: 10px; }
+.pl-vs .x { font-size: 12px; font-weight: 650; color: var(--fg2); }
+.pl-vs-p { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; padding: 6px 4px; border-radius: 14px; text-align: center; }
+.pl-vs-p b { max-width: 100%; font-size: 15px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-vs-p small { font-size: 11.5px; line-height: 1.35; color: var(--fg2); }
+.pl-mini { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.pl-mini h3 { font-size: 17px; font-weight: 750; }
+.pl-mini p { font-size: 12.5px; color: var(--fg2); margin-top: 2px; }
+.pl-spark-box { padding: 12px 10px 6px; }
+.pl-spark-head { display: flex; justify-content: space-between; padding: 0 6px 4px; font-size: 12.5px; font-weight: 600; color: var(--fg2); }
+.pl-spark { display: block; width: 100%; height: auto; }
+.pl-spark text { font-size: 9.5px; fill: var(--fg2); }
+.pl-ml { display: grid; grid-template-columns: 40px 26px minmax(0, 1fr) auto 40px; align-items: center; column-gap: 8px; width: 100%; padding: 9px 12px; text-align: left; border-top: 0.5px solid var(--line); }
+.group > .pl-ml:first-child, .group > .pl-lb:first-child { border-top: 0; }
+.pl-ml .badge { width: 26px; height: 26px; }
+.pl-ml .rd { display: flex; flex-direction: column; align-items: center; font-size: 13px; font-weight: 700; color: var(--fg2); }
+.pl-ml .rd small { font-size: 9.5px; font-weight: 600; }
+.pl-ml .op { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-ml .op b { font-size: 14.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-ml .op small { font-size: 11.5px; color: var(--fg2); white-space: nowrap; }
+.pl-ml .res { display: inline-block; margin-right: 5px; padding: 0 4px; border-radius: 4px; font-size: 10px; font-weight: 800; font-style: normal; color: #fff; }
+.res.W { background: #1fa54a; } .res.D { background: #8a93a6; } .res.L { background: #d6322c; }
+.pl-ml .ev { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; max-width: 130px; }
+.pl-ml .ev span { padding: 1px 5px; border-radius: 5px; background: var(--surface2); font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+.pl-ml .ev .gl { background: var(--fg); color: var(--bg); }
+.pl-ml .ev .yc, .pl-ml .ev .rc { width: 9px; height: 13px; padding: 0; border-radius: 2px; background: #f4c20d; }
+.pl-ml .ev .rc { background: #d6322c; }
+.pl-ml .pl-rt { min-width: 0; width: 40px; }
+.pl-pop { top: calc(var(--top) + 60px); display: flex; flex-direction: column; max-height: calc(100% - var(--top) - 190px); }
+.pl-q { position: relative; flex: none; width: 100%; height: 40px; padding: 0 14px; margin-bottom: 10px; border: 0; border-radius: 12px; background: var(--surface2); color: var(--fg); font: inherit; font-size: 16px; }
+.pl-pop-list { position: relative; flex: 1; min-height: 0; overflow-y: auto; margin: 0 -6px; }
+.pl-pop-list button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 8px; border-radius: 12px; text-align: left; }
+.pl-pop-list button:active { background: var(--lens); }
+.pl-pop-list .badge { width: 26px; height: 26px; }
+.pl-pop-list span { display: flex; flex-direction: column; min-width: 0; }
+.pl-pop-list b { font-size: 15px; font-weight: 650; }
+.pl-pop-list small { font-size: 12px; color: var(--fg2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
