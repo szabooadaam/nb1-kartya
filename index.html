@@ -74,13 +74,6 @@
     </div>
 
     <div class="screen detail-screen" id="detail" aria-hidden="true">
-      <div class="detail-nav">
-        <button class="round-btn glass back-btn" id="btnBack" type="button" aria-label="Vissza a fordulóhoz">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-        </button>
-        <div class="detail-title" id="detailTitle"></div>
-        <span></span>
-      </div>
       <div class="scroll detail-scroll" id="detailScroll">
         <div class="hero">
           <div class="hero-team"><span class="badge big" id="hBadge"></span><span class="hero-name" id="hName"></span></div>
@@ -88,14 +81,8 @@
           <div class="hero-team"><span class="badge big" id="aBadge"></span><span class="hero-name" id="aName"></span></div>
         </div>
         <p class="hero-meta" id="meta"></p>
-        <div class="segmented" id="seg" role="tablist">
-          <span class="seg-thumb"></span>
-          <button type="button" role="tab" data-seg="sum" aria-selected="true">Összegzés</button>
-          <button type="button" role="tab" data-seg="stat" aria-selected="false">Statisztika</button>
-        </div>
         <div id="segSum"></div>
-        <div id="segStat" hidden></div>
-        <p class="foot-note">A bal szélről jobbra húzva visszalépsz a fordulóhoz.</p>
+        <div id="segStat"></div>
       </div>
     </div>
   </section>

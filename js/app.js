@@ -53,7 +53,6 @@
   let current = null;     // az adatlapon nyitott meccs
   let TEAM = null;        // a Csapat fül (team.js), az indulásnál jön létre
   let PLAYER = null;      // a Játékos fül (player.js), az indulásnál jön létre
-  let seg = 'sum';
   // ---------- logók (beépítve, a footylogos.com NB1-oldaláról, változtatás nélkül) ----------
   // A Vasas és a Kispest Honvéd logóját a felhasználó adta (az oldalon nincs): átlátszó háttérrel, 320×320-ra igazítva.
   const LOGOS = {
@@ -344,7 +343,6 @@
     const st = F.statusInfo(m);
     const c = colorsFor(m);
     const done = st.kind === 'finished' && m.hs != null;
-    $('#detailTitle').textContent = m.h.code + ' – ' + m.a.code;
     $('#hBadge').outerHTML = badge(m.h, 'big', c.l).replace('class="badge', 'id="hBadge" class="badge');
     $('#aBadge').outerHTML = badge(m.a, 'big', c.r).replace('class="badge', 'id="aBadge" class="badge');
     $('#hName').textContent = m.h.name;
@@ -357,21 +355,22 @@
     const venue = [m.h.venue, m.h.city].filter(Boolean).join(', ');
     $('#meta').textContent = LEAGUE + ' · ' + m.round + '. forduló · ' + F.dateLong(m.ts) + (venue ? ' · ' + venue : '');
 
-    // összegzés: gólok + kártya gomb
+    // gólszerzők: hazai balra, vendég jobbra, középen labda; legutóbbi gól felül
     const goals = D.goals[m.id];
     let sum = '';
     if (!done) {
       sum = '<div class="panel"><p class="empty-msg">' + (st.kind === 'postponed' ? 'A meccset elhalasztották, ezért nincs adat.' : m.ts > nowSec() ? 'A meccs még nem kezdődött el. Az adatok a lefújás után kerülnek a csomagba.' : 'Ennek a meccsnek még nincs eredménye a beépített adatcsomagban.') + '</p></div>';
-    } else {
-      sum += '<div class="panel"><div class="panel-label">Gólok</div>';
-      if (goals && goals.length) {
-        sum += goals.map((g) => {
-          const tag = g[3] === 'penalty' ? ' <small>(11-es)</small>' : g[3] === 'own' ? ' <small>(öngól)</small>' : '';
-          return '<div class="goal"><span class="h">' + (g[0] === 'home' ? esc(g[1]) + tag : '') + '</span><span class="min">' + esc(g[2]) + '</span><span>' + (g[0] === 'away' ? esc(g[1]) + tag : '') + '</span></div>';
-        }).join('');
-      } else sum += '<p class="empty-msg">' + (goals ? 'Gól nélküli döntetlen.' : 'Gól-adat nincs a csomagban.') + '</p>';
-      sum += '<div style="height:8px"></div></div>';
-    }
+    } else if (goals && goals.length) {
+      // "Szendrei Á." -> "Á. Szendrei", "Dénes Cs. V." -> "Cs. V. Dénes"
+      const flip = (n) => { const p = String(n).split(' '); const i = p.findIndex((x) => /\.$/.test(x)); return i > 0 ? p.slice(i).concat(p.slice(0, i)).join(' ') : n; };
+      const side = (s) => goals.filter((g) => g[0] === s).sort((a, b) => parseInt(b[2], 10) - parseInt(a[2], 10)).map((g) => {
+        const tag = g[3] === 'penalty' ? ' <small>(11-es)</small>' : g[3] === 'own' ? ' <small>(ö.g.)</small>' : '';
+        return '<li><b>' + esc(flip(g[1])) + '</b>' + tag + ' ' + esc(g[2]) + '</li>';
+      }).join('');
+      sum = '<div class="scorers"><ul class="h">' + side('home') + '</ul>' +
+        '<svg class="ball" viewBox="0 0 24 24" aria-label="Gólok"><circle cx="12" cy="12" r="9"/><path d="M12 7l4.5 3.2-1.7 5.3H9.2L7.5 10.2z"/><path d="M12 7V3M16.5 10.2l3.9-1.4M14.8 15.5l2.4 3.4M9.2 15.5l-2.4 3.4M7.5 10.2L3.6 8.8"/></svg>' +
+        '<ul>' + side('away') + '</ul></div>';
+    } else sum = '<p class="scorers-none">' + (goals ? 'Gól nélküli döntetlen' : 'Gól-adat nincs a csomagban') + '</p>';
     $('#segSum').innerHTML = sum;
 
     // statisztika
@@ -384,23 +383,13 @@
         '<span class="pill' + (al ? ' lead' : '') + '" style="' + (al ? 'background:' + c.r : '') + '">' + esc(r.a) + '</span></div>' +
         '<div class="bars"><span><i style="width:' + Math.round(r.r * 100) + '%;' + (hl ? 'background:' + c.l : '') + '"></i></span>' +
         '<span><i style="width:' + Math.round((1 - r.r) * 100) + '%;' + (al ? 'background:' + c.r : '') + '"></i></span></div></div>';
-    }).join('') + '</div>' : '<div class="panel"><p class="empty-msg">Ehhez a meccshez nincs statisztika a beépített adatcsomagban.</p></div>';
-    setSeg(seg);
-  }
-
-  function setSeg(s) {
-    seg = s;
-    $('#seg').classList.toggle('right', s === 'stat');
-    document.querySelectorAll('#seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.seg === s)));
-    $('#segSum').hidden = s !== 'sum';
-    $('#segStat').hidden = s !== 'stat';
+    }).join('') + '</div>' : (done ? '<div class="panel"><p class="empty-msg">Ehhez a meccshez nincs statisztika a beépített adatcsomagban.</p></div>' : '');
   }
 
   function openMatch(id) {
     const m = MATCHES.find((x) => x.id === id);
     if (!m) return;
     current = m;
-    seg = 'sum';
     renderDetail();
     $('#detailScroll').scrollTop = 0;
     setCompact(false);
@@ -537,8 +526,6 @@
   $('#scrim').onclick = closePop;
   $('#pgrid').addEventListener('click', (e) => { const b = e.target.closest('button[data-round]'); if (b) { closePop(); goto(Number(b.dataset.round)); } });
   $('#btnNow').onclick = () => goto(currentRound());
-  $('#btnBack').onclick = closeDetail;
-  $('#seg').addEventListener('click', (e) => { const b = e.target.closest('button[data-seg]'); if (b) setSeg(b.dataset.seg); });
   document.querySelectorAll('.tabbar button').forEach((b) => {
     b.onclick = () => {
       if (b.dataset.go !== tab) { setTab(b.dataset.go); return; }
