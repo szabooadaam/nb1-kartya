@@ -42,6 +42,14 @@
   --spring: cubic-bezier(0.3, 1.4, 0.5, 1);
   --top: max(env(safe-area-inset-top, 0px), 20px);
   --bar-bottom: max(calc(env(safe-area-inset-bottom, 0px) - 12px), 14px);
+  /* alsó sáv (ugyanaz a kapszula, mint az FM27 Pozíciókalauzban, a KISPAD színeivel) */
+  --bar-bg: rgba(250, 251, 252, 0.82);
+  --bar-edge: rgba(255, 255, 255, 0.95);
+  --bar-border: rgba(17, 20, 27, 0.08);
+  --bar-shadow: 0 8px 24px rgba(20, 30, 60, 0.16), 0 1px 3px rgba(20, 30, 60, 0.08);
+  --bar-fg: #11141b;
+  --bar-pill: rgba(17, 20, 27, 0.07);
+  --bar-pill-edge: inset 0 1px 2px rgba(0, 0, 0, 0.06);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -50,6 +58,9 @@
     --accent: #7d9bff; --accent-fg: #0d0f14; --warn: #ffb347; --ok: #5ad17f;
     --glass: rgba(38, 42, 53, 0.48); --glass-solid: #1e2129; --glass-edge: rgba(255, 255, 255, 0.18); --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     --lens: rgba(255, 255, 255, 0.13); --press: rgba(255, 255, 255, 0.06); --shadow-pop: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --bar-bg: rgba(44, 46, 49, 0.93); --bar-edge: rgba(255, 255, 255, 0.16); --bar-border: rgba(255, 255, 255, 0.07);
+    --bar-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4); --bar-fg: #f4f5f6;
+    --bar-pill: rgba(12, 13, 15, 0.62); --bar-pill-edge: inset 0 1px 3px rgba(0, 0, 0, 0.45), 0 0.5px 0 rgba(255, 255, 255, 0.06);
     color-scheme: dark;
   }
 }
@@ -58,6 +69,9 @@
   --accent: #7d9bff; --accent-fg: #0d0f14; --warn: #ffb347; --ok: #5ad17f;
   --glass: rgba(38, 42, 53, 0.48); --glass-solid: #1e2129; --glass-edge: rgba(255, 255, 255, 0.18); --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   --lens: rgba(255, 255, 255, 0.13); --press: rgba(255, 255, 255, 0.06); --shadow-pop: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --bar-bg: rgba(44, 46, 49, 0.93); --bar-edge: rgba(255, 255, 255, 0.16); --bar-border: rgba(255, 255, 255, 0.07);
+  --bar-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4); --bar-fg: #f4f5f6;
+  --bar-pill: rgba(12, 13, 15, 0.62); --bar-pill-edge: inset 0 1px 3px rgba(0, 0, 0, 0.45), 0 0.5px 0 rgba(255, 255, 255, 0.06);
   color-scheme: dark;
 }
 
@@ -273,16 +287,37 @@ svg { display: block; }
 .pkg-status.err { color: var(--warn); font-weight: 600; }
 .link-btn { align-self: flex-start; font-size: 13.5px; font-weight: 600; color: var(--accent); padding: 4px 0; }
 
-/* ---------- alsó navigáció ---------- */
+/* ---------- alsó navigáció ----------
+   Pontosan ugyanakkora és ugyanúgy működik, mint az FM27 Pozíciókalauz sávja (a méretek ott és itt is ezek).
+   Lefelé görgetésnél összemegy (.compact): keskenyebb és alacsonyabb lesz, a feliratok eltűnnek, csak az ikonok maradnak.
+   Felfelé görgetésnél vagy a lap tetején teljes méretben, felirattal látszik. Az átmenet rugós, mint az iOS 26 sávjánál.
+   Kinézet: tömörebb, enyhén áttetsző kapszula finom felső fénycsíkkal; az aktív fület egy mélyebb, besüllyesztett
+   kapszula jelöli, benne az ikon és a felirat kiemelőszínű. */
 .tabbar {
-  position: absolute; left: 20px; right: 20px; bottom: var(--bar-bottom); height: 62px; border-radius: 31px; padding: 4px; z-index: 10;
+  --bar-ease: cubic-bezier(0.25, 1.25, 0.4, 1);
+  position: absolute; left: 14px; right: 14px; bottom: var(--bar-bottom); height: 56px; border-radius: 28px; padding: 4px; z-index: 10;
   display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  background: var(--bar-bg);
+  -webkit-backdrop-filter: blur(24px) saturate(170%); backdrop-filter: blur(24px) saturate(170%);
+  box-shadow: inset 0 1px 0 var(--bar-edge), inset 0 0 0 0.5px var(--bar-border), var(--bar-shadow);
+  transition: height 0.5s var(--bar-ease), left 0.5s var(--bar-ease), right 0.5s var(--bar-ease), border-radius 0.5s var(--bar-ease), bottom 0.5s var(--bar-ease);
+  will-change: height, left, right;
 }
-.tabbar button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--fg); transition: color 0.3s ease; }
+@media (prefers-reduced-transparency: reduce) { .tabbar { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--surface); } }
+.tabbar button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--bar-fg); transition: color 0.3s ease, gap 0.4s var(--bar-ease); }
 .tabbar button[aria-current="page"] { color: var(--accent); }
-.tabbar svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
-.tabbar span:not(.lens) { font-size: 10px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
-.lens { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 5); border-radius: 27px; background: var(--lens); transition: transform 0.5s var(--spring); }
+.tabbar button:active svg { transform: scale(0.88); }
+.tabbar svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.85; stroke-linecap: round; stroke-linejoin: round; transition: width 0.45s var(--bar-ease), height 0.45s var(--bar-ease), transform 0.2s ease; }
+.tabbar .lbl {
+  display: block; font-size: 10.5px; line-height: 12px; max-height: 12px; font-weight: 600; letter-spacing: 0; white-space: nowrap;
+  transition: opacity 0.22s ease 0.08s, max-height 0.45s var(--bar-ease), transform 0.45s var(--bar-ease);
+}
+.lens { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 5); border-radius: 24px; background: var(--bar-pill); box-shadow: var(--bar-pill-edge); transition: transform 0.5s var(--spring), border-radius 0.5s var(--bar-ease); }
+.tabbar.compact { height: 44px; left: 52px; right: 52px; border-radius: 22px; bottom: calc(var(--bar-bottom) + 4px); }
+.tabbar.compact button { gap: 0; }
+.tabbar.compact svg { width: 21px; height: 21px; }
+.tabbar.compact .lbl { opacity: 0; max-height: 0; transform: translateY(4px) scale(0.7); transition: opacity 0.14s ease, max-height 0.45s var(--bar-ease), transform 0.45s var(--bar-ease); }
+.tabbar.compact .lens { border-radius: 18px; }
 
 /* ---------- forduló-választó ---------- */
 .scrim { position: absolute; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.3); }
@@ -422,6 +457,11 @@ svg { display: block; }
 .team-grid button .badge { width: 30px; height: 30px; }
 .team-grid button[aria-current="true"] { background: var(--lens); }
 .team-grid button:disabled { opacity: 0.3; }
+
+/* Beállítások › Adatok: utolsó frissítés és forrás */
+.data-info { gap: 6px; }
+.data-info p { font-size: 15px; line-height: 1.4; }
+.data-info b { font-weight: 650; }
 
 /* ===== Indulóképernyő: mintha az ikonból belezoomolnánk a logóba =====
    A logó ugyanott és ugyanakkora (168 pont), mint az iOS indítóképen (icons/splash), így a kettő egybefolyik.

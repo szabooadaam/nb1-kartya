@@ -47,7 +47,7 @@
     <div class="screen list-screen" id="listScreen">
       <header class="list-head">
         <div class="title-row">
-          <h1>Meccsek</h1>
+          <h1>Buzi a Babám! &lt;3</h1>
         </div>
         <div class="round-pill">
           <button type="button" id="prev" aria-label="Előző forduló"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -181,14 +181,9 @@
     </div>
 
     <div class="group-label">ADATOK</div>
-    <div class="group pad">
-      <div class="pkg-row">
-        <span class="row-label">Adatcsomag</span>
-        <button class="btn-small" type="button" id="btnPkg">Tallózás…</button>
-      </div>
-      <p class="pkg-status" id="pkgStatus" role="status" aria-live="polite"></p>
-      <p class="hint tight" id="dataInfo"></p>
-      <button class="link-btn" type="button" id="btnPkgReset" hidden>Vissza a beépített adatokra</button>
+    <div class="group pad data-info">
+      <p>Utolsó adatbázis frissítés: <b id="lastUpdate">–</b></p>
+      <p>Forrás: <b>Opta</b></p>
     </div>
 
     <div class="group-label">NÉVJEGY</div>
@@ -202,28 +197,28 @@
   <!-- az állapotsor (óra, akkumulátor) alatti csík: a görgetett tartalom ne fusson az órába -->
   <div class="statusbar-scrim" aria-hidden="true"></div>
 
-  <!-- ===== Liquid Glass alsó navigáció ===== -->
-  <nav class="tabbar glass" id="tabbar" aria-label="Fő navigáció">
+  <!-- ===== alsó navigáció (görgetésre összecsukódik; mérete azonos az FM27 Pozíciókalauzéval) ===== -->
+  <nav class="tabbar" id="tabbar" aria-label="Fő navigáció">
     <span class="lens" id="lens"></span>
     <button type="button" data-go="matches" aria-label="Meccsek">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
-      <span>Meccsek</span>
+      <span class="lbl">Meccsek</span>
     </button>
     <button type="button" data-go="player" aria-label="Játékosok">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.5" r="3.8"/><path d="M4.5 20.5c.6-4 3.7-6.5 7.5-6.5s6.9 2.5 7.5 6.5"/></svg>
-      <span>Játékos</span>
+      <span class="lbl">Játékos</span>
     </button>
     <button type="button" data-go="table" aria-label="Tabella">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg>
-      <span>Tabella</span>
+      <span class="lbl">Tabella</span>
     </button>
     <button type="button" data-go="team" aria-label="Csapat">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5.5c0 4.3-3 7.8-7 9.5-4-1.7-7-5.2-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg>
-      <span>Csapat</span>
+      <span class="lbl">Csapat</span>
     </button>
     <button type="button" data-go="settings" aria-label="Beállítások">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>
-      <span>Beállítások</span>
+      <span class="lbl">Beállítások</span>
     </button>
   </nav>
 
@@ -246,7 +241,6 @@
     <input class="pl-q" id="playerPopQ" type="search" placeholder="Név, csapat vagy poszt" autocomplete="off" autocapitalize="off" spellcheck="false">
     <div class="pl-pop-list" id="playerPopList"></div>
   </div>
-  <input type="file" id="pkgFile" hidden>
 </div>
 
 <script src="js/format.js"></script>

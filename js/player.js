@@ -309,7 +309,7 @@
     const RENDER = [renderProfil, renderRanglista, renderParhuzam, renderMeccsek];
     function render() {
       const PD = ctx.playerData();
-      if (!PD || !PD.players || !Object.keys(PD.players).length) { $('#pp0').innerHTML = '<p class="hint">Nincs játékosstatisztika. Tölts be egy játékosstatisztika-csomagot a Beállítások › Adatok résznél.</p>'; return; }
+      if (!PD || !PD.players || !Object.keys(PD.players).length) { $('#pp0').innerHTML = '<p class="hint">Nincs játékosstatisztika.</p>'; return; }
       ensure();
       RENDER.forEach((fn, i) => { const el = $('#pp' + i); const top = el.scrollTop; el.innerHTML = fn(); el.scrollTop = top; });
       setPage(st.page, false);

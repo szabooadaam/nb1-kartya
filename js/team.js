@@ -342,7 +342,7 @@
     // ---------- lapozás ----------
     const RENDER = [renderProfil, renderRangsor, renderParhuzam, renderStat];
     function render() {
-      if (!TD() || !TD().overall) { $('#tp0').innerHTML = '<p class="hint">Nincs csapatstatisztika. Tölts be egy csapatstatisztika-csomagot a Beállítások › Adatok résznél.</p>'; return; }
+      if (!TD() || !TD().overall) { $('#tp0').innerHTML = '<p class="hint">Nincs csapatstatisztika.</p>'; return; }
       ensureTeams();
       RENDER.forEach((fn, i) => { const el = $('#tp' + i); const top = el.scrollTop; el.innerHTML = fn(); el.scrollTop = top; });
       setPage(st.page, false);
